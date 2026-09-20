@@ -1,0 +1,346 @@
+{
+  "pagina-completa.html": {
+    "reconhecida": true,
+    "avisos": [],
+    "tamanho": 1546,
+    "rotulos_marcados": [
+      "acompanhamento",
+      "bebida",
+      "complemento",
+      "entrada",
+      "fruta",
+      "guarnicao",
+      "opcao",
+      "pao",
+      "prato proteico",
+      "sobremesa",
+      "suco"
+    ],
+    "blocos": [
+      {
+        "refeicao": "Desjejum",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "sexta-feira, 11 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Pão",
+            "itens": [
+              "Pão Fracês (CG)"
+            ]
+          },
+          {
+            "rotulo": "Complemento",
+            "itens": [
+              "Margarina com Sal"
+            ]
+          },
+          {
+            "rotulo": "Bebida",
+            "itens": [
+              "Café",
+              "Leite Integral (CL)",
+              "Suco de Morango"
+            ]
+          },
+          {
+            "rotulo": "Fruta",
+            "itens": [
+              "Banana Prata"
+            ]
+          }
+        ],
+        "assinatura": "b9fa583de051b420",
+        "formatado": "☕ <b>Desjejum</b> — sexta-feira, 11 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Pão</b>\n• Pão Fracês (CG)\n\n<b>Complemento</b>\n• Margarina com Sal\n\n<b>Bebida</b>\n• Café\n• Leite Integral (CL)\n• Suco de Morango\n\n<b>Fruta</b>\n• Banana Prata"
+      },
+      {
+        "refeicao": "Almoço",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "sexta-feira, 11 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Entrada",
+            "itens": [
+              "Almeirão e Rúcula",
+              "Beterraba Cozida"
+            ]
+          },
+          {
+            "rotulo": "Prato Proteico",
+            "itens": [
+              "Peixe Frito"
+            ]
+          },
+          {
+            "rotulo": "Opção",
+            "itens": [
+              "Moqueca de Grão-de-Bico"
+            ]
+          },
+          {
+            "rotulo": "Acompanhamento",
+            "itens": [
+              "Arroz e Feijão"
+            ]
+          },
+          {
+            "rotulo": "Guarnição",
+            "itens": [
+              "Pirão",
+              "Pirão de Legumes"
+            ]
+          },
+          {
+            "rotulo": "Sobremesa",
+            "itens": [
+              "Laranja"
+            ]
+          },
+          {
+            "rotulo": "Suco",
+            "itens": [
+              "Manga"
+            ]
+          }
+        ],
+        "assinatura": "9291200898381de9",
+        "formatado": "🍽️ <b>Almoço</b> — sexta-feira, 11 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Entrada</b>\n• Almeirão e Rúcula\n• Beterraba Cozida\n\n<b>Prato Proteico</b>\n• Peixe Frito\n\n<b>Opção</b>\n• Moqueca de Grão-de-Bico\n\n<b>Acompanhamento</b>\n• Arroz e Feijão\n\n<b>Guarnição</b>\n• Pirão\n• Pirão de Legumes\n\n<b>Sobremesa</b>\n• Laranja\n\n<b>Suco</b>\n• Manga"
+      },
+      {
+        "refeicao": "Jantar",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "sexta-feira, 11 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Entrada",
+            "itens": [
+              "Cenoura Ralada",
+              "Inhame"
+            ]
+          },
+          {
+            "rotulo": "Prato Proteico",
+            "itens": [
+              "Sassami à Milanesa (CG)"
+            ]
+          },
+          {
+            "rotulo": "Opção",
+            "itens": [
+              "Abobrinha com de Proteína Texturizada de Soja e Alecrim (CG)"
+            ]
+          },
+          {
+            "rotulo": "Acompanhamento",
+            "itens": [
+              "Arroz e Feijão"
+            ]
+          },
+          {
+            "rotulo": "Guarnição",
+            "itens": [
+              "Batata Sauté"
+            ]
+          },
+          {
+            "rotulo": "Sobremesa",
+            "itens": [
+              "Maçã",
+              "Doce de Banana"
+            ]
+          },
+          {
+            "rotulo": "Suco",
+            "itens": [
+              "Acerola"
+            ]
+          }
+        ],
+        "assinatura": "7dbf87f18b2e9752",
+        "formatado": "🌙 <b>Jantar</b> — sexta-feira, 11 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Entrada</b>\n• Cenoura Ralada\n• Inhame\n\n<b>Prato Proteico</b>\n• Sassami à Milanesa (CG)\n\n<b>Opção</b>\n• Abobrinha com de Proteína Texturizada de Soja e Alecrim (CG)\n\n<b>Acompanhamento</b>\n• Arroz e Feijão\n\n<b>Guarnição</b>\n• Batata Sauté\n\n<b>Sobremesa</b>\n• Maçã\n• Doce de Banana\n\n<b>Suco</b>\n• Acerola"
+      }
+    ]
+  },
+  "pagina-vazia.html": {
+    "reconhecida": true,
+    "avisos": [],
+    "tamanho": 736,
+    "rotulos_marcados": [],
+    "blocos": []
+  },
+  "pagina-quebrada.html": {
+    "reconhecida": false,
+    "avisos": [],
+    "tamanho": 1358,
+    "rotulos_marcados": [],
+    "blocos": []
+  },
+  "pagina-2026-09-16.html": {
+    "reconhecida": true,
+    "avisos": [],
+    "blocos": [
+      {
+        "refeicao": "Desjejum",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "quarta-feira, 16 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Pão",
+            "itens": [
+              "Pão Brioche (CG)"
+            ]
+          },
+          {
+            "rotulo": "Complemento",
+            "itens": [
+              "Manteiga com Sal (CL)"
+            ]
+          },
+          {
+            "rotulo": "Bebida",
+            "itens": [
+              "Café",
+              "Leite Integral (CL)",
+              "Suco de Acerola"
+            ]
+          },
+          {
+            "rotulo": "Fruta",
+            "itens": [
+              "Banana"
+            ]
+          }
+        ],
+        "assinatura": "fe306a317094dd58",
+        "formatado": "☕ <b>Desjejum</b> — quarta-feira, 16 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Pão</b>\n• Pão Brioche (CG)\n\n<b>Complemento</b>\n• Manteiga com Sal (CL)\n\n<b>Bebida</b>\n• Café\n• Leite Integral (CL)\n• Suco de Acerola\n\n<b>Fruta</b>\n• Banana"
+      },
+      {
+        "refeicao": "Almoço",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "quarta-feira, 16 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Entrada",
+            "itens": [
+              "Repolho Bicolor",
+              "Tomate"
+            ]
+          },
+          {
+            "rotulo": "Prato Proteico",
+            "itens": [
+              "Sobrecoxa de Frango Assada"
+            ]
+          },
+          {
+            "rotulo": "Opção",
+            "itens": [
+              "Falafel (CG)"
+            ]
+          },
+          {
+            "rotulo": "Acompanhamento",
+            "itens": [
+              "Arroz e Feijão"
+            ]
+          },
+          {
+            "rotulo": "Guarnição",
+            "itens": [
+              "Legumes ao Molho Branco (CL)"
+            ]
+          },
+          {
+            "rotulo": "Sobremesa",
+            "itens": [
+              "Maçã",
+              "Doce de Leite"
+            ]
+          },
+          {
+            "rotulo": "Suco",
+            "itens": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "assinatura": "efa23dcd97411cd7",
+        "formatado": "🍽️ <b>Almoço</b> — quarta-feira, 16 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Entrada</b>\n• Repolho Bicolor\n• Tomate\n\n<b>Prato Proteico</b>\n• Sobrecoxa de Frango Assada\n\n<b>Opção</b>\n• Falafel (CG)\n\n<b>Acompanhamento</b>\n• Arroz e Feijão\n\n<b>Guarnição</b>\n• Legumes ao Molho Branco (CL)\n\n<b>Sobremesa</b>\n• Maçã\n• Doce de Leite\n\n<b>Suco</b>\n• Abacaxi"
+      },
+      {
+        "refeicao": "Jantar",
+        "campus": "Alegre e Jerônimo Monteiro",
+        "data": "quarta-feira, 16 de Setembro de 2026",
+        "secoes": [
+          {
+            "rotulo": "Entrada",
+            "itens": [
+              "Beterraba com Cenoura",
+              "Rabanete"
+            ]
+          },
+          {
+            "rotulo": "Prato Proteico",
+            "itens": [
+              "Lombo Suíno Assado"
+            ]
+          },
+          {
+            "rotulo": "Opção",
+            "itens": [
+              "Quibe Vegetariano (CG)"
+            ]
+          },
+          {
+            "rotulo": "Acompanhamento",
+            "itens": [
+              "Arroz e Feijão"
+            ]
+          },
+          {
+            "rotulo": "Guarnição",
+            "itens": [
+              "Tutu de Feijão com Calabresa"
+            ]
+          },
+          {
+            "rotulo": "Sobremesa",
+            "itens": [
+              "Melancia"
+            ]
+          },
+          {
+            "rotulo": "Suco",
+            "itens": [
+              "Graviola"
+            ]
+          }
+        ],
+        "assinatura": "7e38660326ccdd15",
+        "formatado": "🌙 <b>Jantar</b> — quarta-feira, 16 de Setembro de 2026\n<i>Alegre e Jerônimo Monteiro</i>\n\n<b>Entrada</b>\n• Beterraba com Cenoura\n• Rabanete\n\n<b>Prato Proteico</b>\n• Lombo Suíno Assado\n\n<b>Opção</b>\n• Quibe Vegetariano (CG)\n\n<b>Acompanhamento</b>\n• Arroz e Feijão\n\n<b>Guarnição</b>\n• Tutu de Feijão com Calabresa\n\n<b>Sobremesa</b>\n• Melancia\n\n<b>Suco</b>\n• Graviola"
+      }
+    ],
+    "rotulos_marcados": [
+      "acompanhamento",
+      "bebida",
+      "complemento",
+      "entrada",
+      "fruta",
+      "guarnicao",
+      "opcao",
+      "pao",
+      "prato proteico",
+      "sobremesa",
+      "suco"
+    ],
+    "tamanho": 1532
+  },
+  "pagina-nao-publicada.html": {
+    "reconhecida": false,
+    "avisos": [],
+    "tamanho": 685,
+    "rotulos_marcados": [
+      "restaurante universitario"
+    ],
+    "blocos": []
+  }
+}

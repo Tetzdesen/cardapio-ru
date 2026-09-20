@@ -1,0 +1,76 @@
+name: Cardápio do RU
+
+on:
+  schedule:
+    # cron do Actions é em UTC; BRT = UTC-3
+    - cron: '40 8 * * 1-5'   # 05h40 BRT — anuncia o dia inteiro
+    - cron: '30 12 * * 1-5'  # 09h30 BRT — reconfere almoço e jantar
+  workflow_dispatch:         # botão manual = mesma coisa que as 05h40
+
+# O estado vive em estado/ultimo-envio.json, versionado com o projeto: o runner
+# é efêmero, então o que precisa sobreviver entre execuções volta num commit.
+permissions:
+  contents: write
+
+# Duas execuções leem e escrevem o mesmo arquivo e falam com o mesmo grupo.
+# É daqui que vem a garantia de envio único: nenhuma é cancelada, a segunda
+# espera — cancelar perderia o envio que a primeira ainda não gravou.
+concurrency:
+  group: cardapio
+  cancel-in-progress: false
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Construir o jar
+        run: mvn -B -DskipTests package
+
+      - name: Escolher refeições
+        id: refeicoes
+        run: |
+          if [ "${{ github.event.schedule }}" = "30 12 * * 1-5" ]; then
+            echo "lista=almoco,jantar" >> "$GITHUB_OUTPUT"
+          else
+            echo "lista=desjejum,almoco,jantar" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Baixa, formata, envia, morre. O código de saída é o que derruba o job:
+      # 0 sucesso (inclusive "nada a enviar" e "dia sem cardápio"), 2 uso,
+      # 3 Telegram, 4 estrutura, 5 origem, 6 estado — ver README.
+      - name: Disparar a notificação
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          java -jar target/cardapio-ru-*.jar \
+            --enviar \
+            --refeicoes '${{ steps.refeicoes.outputs.lista }}' \
+            --campus alegre \
+            --vazio-silencioso
+
+      # Só commita quando algo mudou: execução que não envia nada não grava.
+      # [skip ci] é o segundo cinto — o gatilho é schedule/dispatch, não push,
+      # então este commit não realimentaria o agendamento de qualquer forma.
+      - name: Guardar o estado
+        if: always()
+        run: |
+          # --porcelain, e nao 'git diff', para pegar tambem o caso em que o
+          # arquivo ainda nao esta versionado: a primeira execucao o cria
+          if [ -z "$(git status --porcelain -- estado/ultimo-envio.json)" ]; then
+            echo "estado inalterado; nada a commitar"
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add estado/ultimo-envio.json
+          git commit -m 'estado: cardápio anunciado [skip ci]'
+          git push

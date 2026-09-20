@@ -1,0 +1,11 @@
+# Build do Maven
+target/
+
+# Python do ru_bot.py, enquanto ele estiver aqui
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# HTML baixado à mão para depurar o parser
+pagina.html

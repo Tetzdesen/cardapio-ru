@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  O cardapio sai no stdout e o log no stderr, para redirecionar a saida do modo
+  de impressao para um arquivo servir.
+  E a mesma divisao do ru_bot.py, que mandava o logging para o stderr de
+  proposito: sem isto, redirecionar a saida traria o log do Spring junto.
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder>
+      <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+      <charset>${CONSOLE_LOG_CHARSET}</charset>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDERR"/>
+  </root>
+</configuration>
