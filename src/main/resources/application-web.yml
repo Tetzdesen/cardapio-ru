@@ -1,0 +1,5 @@
+# Sobe a API HTTP: consulta do cardapio, disparo manual e saude. Nao participa
+# do agendamento, que roda pelo disparo de uma tacada so.
+spring:
+  main:
+    web-application-type: servlet

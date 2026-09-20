@@ -1,0 +1,17 @@
+# Build do Maven
+target/
+
+# Planejamento do OpenSpec: fica só na máquina, fora do repositório
+openspec/
+
+# Python do ru_bot.py, enquanto ele estiver aqui
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Configuração local de quem usa Claude Code
+.claude/settings.local.json
+
+# HTML baixado à mão para depurar o parser
+pagina.html
