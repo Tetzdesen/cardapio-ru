@@ -127,7 +127,7 @@ jobs:
             echo '| origem | previsto | real | atraso | refeições | enviou |'
             echo '|---|---|---|---|---|---|'
             echo "| $ORIGEM | $PREVISTO | $(fmt "$INICIO") | $ATRASO | ${REFEICOES:-—} | $ENVIOU |"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"   # no log também, para o gh run view --log
 
       # Só commita quando algo mudou: execução que não envia nada não grava.
       # [skip ci] é o segundo cinto — o gatilho é schedule/dispatch, não push,
