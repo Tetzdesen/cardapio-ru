@@ -1,11 +1,21 @@
 name: Cardápio do RU
 
+# O horário vem de um gatilho externo (cron-job.org) que chama o
+# workflow_dispatch às 05h40 e 09h30 BRT: o schedule do Actions tem atrasado
+# horas. Os dois cron abaixo ficam de reserva, nos mesmos horários — quando o
+# externo funcionou, a reserva encontra o estado gravado e não envia nada.
 on:
   schedule:
     # cron do Actions é em UTC; BRT = UTC-3
-    - cron: '40 8 * * 1-5'   # 05h40 BRT — anuncia o dia inteiro
-    - cron: '30 12 * * 1-5'  # 09h30 BRT — reconfere almoço e jantar
-  workflow_dispatch:         # botão manual = mesma coisa que as 05h40
+    - cron: '40 8 * * 1-5'   # 05h40 BRT — reserva do anúncio da manhã
+    - cron: '30 12 * * 1-5'  # 09h30 BRT — reserva da reconferência
+  workflow_dispatch:
+    inputs:
+      # Só para medir o atraso: nenhuma decisão de envio lê este valor.
+      previsto:
+        description: 'Horário previsto, HH:MMZ (preenchido pelo gatilho externo)'
+        required: false
+        type: string
 
 # O estado vive em estado/ultimo-envio.json, versionado com o projeto: o runner
 # é efêmero, então o que precisa sobreviver entre execuções volta num commit.
@@ -22,7 +32,13 @@ concurrency:
 jobs:
   disparar:
     runs-on: ubuntu-latest
+    # Sem teto, o padrão são 6h: uma execução pendurada seguraria o grupo de
+    # concurrency e o disparo seguinte. O ciclo normal leva menos de 40s.
+    timeout-minutes: 10
     steps:
+      - name: Marcar o início
+        run: echo "INICIO=$(date -u +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
@@ -34,14 +50,26 @@ jobs:
       - name: Construir o jar
         run: mvn -B -DskipTests package
 
+      # Pela hora local da execução, e não pelo gatilho que a iniciou: externo,
+      # reserva e clique manual seguem a mesma regra. Antes das 08h BRT é o dia
+      # inteiro; depois, almoço e jantar — a menos que nada de hoje tenha sido
+      # anunciado ainda, e aí o desjejum volta em vez de sumir em silêncio.
       - name: Escolher refeições
         id: refeicoes
         run: |
-          if [ "${{ github.event.schedule }}" = "30 12 * * 1-5" ]; then
-            echo "lista=almoco,jantar" >> "$GITHUB_OUTPUT"
+          # -03:00 fixo, como cardapio.fuso na aplicação
+          HOJE=$(date -u -d '3 hours ago' +%F)
+          HORA=$(date -u -d '3 hours ago' +%H)
+          if [ "$HORA" -lt 8 ]; then
+            REFEICOES=desjejum,almoco,jantar
           else
-            echo "lista=desjejum,almoco,jantar" >> "$GITHUB_OUTPUT"
+            REFEICOES=almoco,jantar
+            # a chave AAAA-MM-DD|refeicao é contrato da spec, não detalhe do JSON;
+            # arquivo ausente ou ilegível cai no dia inteiro, que é o lado seguro
+            grep -q "\"$HOJE|" estado/ultimo-envio.json 2>/dev/null \
+              || REFEICOES=desjejum,almoco,jantar
           fi
+          echo "lista=$REFEICOES" >> "$GITHUB_OUTPUT"
 
       # Baixa, formata, envia, morre. O código de saída é o que derruba o job:
       # 0 sucesso (inclusive "nada a enviar" e "dia sem cardápio"), 2 uso,
@@ -56,6 +84,50 @@ jobs:
             --refeicoes '${{ steps.refeicoes.outputs.lista }}' \
             --campus alegre \
             --vazio-silencioso
+
+      # Antes de guardar o estado, porque "enviou" é o arquivo ter mudado.
+      # always(): a execução que falha é a que mais precisa ser explicada.
+      - name: Resumo de horários
+        if: always()
+        env:
+          PREVISTO_INPUT: ${{ inputs.previsto }}
+          CRON: ${{ github.event.schedule }}
+          REFEICOES: ${{ steps.refeicoes.outputs.lista }}
+        run: |
+          fmt() { date -u -d "@$1" +%H:%MZ; }
+          INICIO=${INICIO:-$(date -u +%s)}
+          if [ -n "$PREVISTO_INPUT" ]; then
+            ORIGEM=externo; PREVISTO=$PREVISTO_INPUT
+          elif [ -n "$CRON" ]; then
+            ORIGEM=schedule
+            read -r M H _ <<< "$CRON"
+            PREVISTO=$(printf '%02d:%02dZ' "$H" "$M")
+          else
+            ORIGEM=manual; PREVISTO=
+          fi
+          if [ -z "$PREVISTO" ]; then
+            PREVISTO='—'; ATRASO='—'
+          elif [[ "$PREVISTO" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]Z$ ]]; then
+            ALVO=$(date -u -d "$(date -u -d "@$INICIO" +%F) ${PREVISTO%Z}" +%s)
+            # previsto mais de 12h à frente é de ontem: o atraso atravessou a
+            # meia-noite UTC. Menos que isso é só um gatilho que chegou adiantado.
+            [ "$ALVO" -gt $((INICIO + 43200)) ] && ALVO=$((ALVO - 86400))
+            MIN=$(( (INICIO - ALVO) / 60 ))
+            SINAL=; [ "$MIN" -lt 0 ] && { SINAL=-; MIN=$((-MIN)); }
+            ATRASO=$(printf '%s%dh%02d' "$SINAL" $((MIN / 60)) $((MIN % 60)))
+          else
+            PREVISTO="inválido ($PREVISTO)"; ATRASO='—'
+          fi
+          if [ -n "$(git status --porcelain -- estado/ultimo-envio.json)" ]; then
+            ENVIOU=sim
+          else
+            ENVIOU=não
+          fi
+          {
+            echo '| origem | previsto | real | atraso | refeições | enviou |'
+            echo '|---|---|---|---|---|---|'
+            echo "| $ORIGEM | $PREVISTO | $(fmt "$INICIO") | $ATRASO | ${REFEICOES:-—} | $ENVIOU |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Só commita quando algo mudou: execução que não envia nada não grava.
       # [skip ci] é o segundo cinto — o gatilho é schedule/dispatch, não push,
@@ -73,4 +145,14 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add estado/ultimo-envio.json
           git commit -m 'estado: cardápio anunciado [skip ci]'
-          git push
+          # main pode ter andado desde o checkout; um push seco seria rejeitado
+          # e o estado perdido, e a execução seguinte reanunciaria
+          for tentativa in 1 2; do
+            if git pull --rebase origin "$GITHUB_REF_NAME" \
+                && git push origin "HEAD:$GITHUB_REF_NAME"; then
+              exit 0
+            fi
+            echo "push do estado falhou (tentativa $tentativa de 2)"
+            sleep 5
+          done
+          exit 1

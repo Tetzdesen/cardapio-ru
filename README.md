@@ -88,24 +88,124 @@ Settings → Secrets and variables → Actions → New repository secret: `TELEG
 `-1001234567890`). Para pegar o `chat_id`: mande uma mensagem para o bot e abra
 `https://api.telegram.org/bot<TOKEN>/getUpdates`.
 
-O `.github/workflows/cardapio.yml` roda de segunda a sexta:
+O anúncio sai de segunda a sexta:
 
-| horário (BRT) | o que faz | refeições |
+| horário (BRT) | o que costuma acontecer |
+|---|---|
+| **05h40** | anuncia o cardápio do dia — desjejum, almoço e jantar |
+| **09h30** | reconfere almoço e jantar, e só fala se algo mudou |
+
+### Quem garante o horário: o gatilho externo
+
+O `schedule` do Actions **não serve para horário**: de 21 a 23/09 ele atrasou todas as seis
+execuções entre 4h40 e 6h38 — sem perder nenhuma, mas nenhuma perto da hora. O
+`workflow_dispatch`, ao contrário, vira run no mesmo segundo. Por isso quem dispara nos
+horários é o [cron-job.org](https://cron-job.org), chamando a API do GitHub.
+
+São dois jobs lá, com fuso **`America/Sao_Paulo`**, **segunda a sexta**, e o alerta de
+falha por e-mail **ligado**:
+
+| job | horário | corpo |
 |---|---|---|
-| **05h40** | anuncia o cardápio do dia | desjejum, almoço, jantar |
-| **09h30** | reconfere e só fala se algo mudou | almoço, jantar |
+| manhã | 05:40 | `{"ref":"main","inputs":{"previsto":"08:40Z"}}` |
+| reconferência | 09:30 | `{"ref":"main","inputs":{"previsto":"12:30Z"}}` |
 
-O botão **Run workflow** faz o mesmo que as 05h40.
+Os dois com:
 
-O cron do Actions é em **UTC** (por isso `08:40` e `12:30` no arquivo), e a fila costuma
-atrasar de 5 a 20 minutos — **05h40 é alvo, não garantia**.
+```
+POST https://api.github.com/repos/Tetzdesen/cardapio-ru/actions/workflows/cardapio.yml/dispatches
+Authorization: Bearer <token>
+Accept: application/vnd.github+json
+X-GitHub-Api-Version: 2022-11-28
+```
+
+Sucesso é **`204`**, sem corpo. O `previsto` é em UTC e só serve para medir o atraso (ver
+adiante): nada do envio lê esse valor. Isto é tudo o que existe fora do repositório — com
+esta seção dá para recriar os jobs do zero.
+
+### A reserva: o `schedule` do Actions
+
+Os dois `cron` do workflow (`40 8` e `30 12`, em UTC) continuam lá, nos mesmos horários.
+No dia normal eles chegam horas depois do gatilho externo, encontram o estado já gravado e
+terminam em segundos sem enviar nada. No dia em que o externo falha, **anunciam com
+atraso** — pior que na hora, melhor que nunca. Cada refeição chega uma vez só, venha de
+onde vier a execução: quem suprime a repetição é o estado, não a ordem das execuções.
+
+### Que refeições cada execução pede
+
+Não depende de quem disparou, e sim da **hora da execução em Brasília**:
+
+- antes das **08h** → desjejum, almoço e jantar;
+- a partir das 08h → almoço e jantar, **exceto** se nada de hoje foi anunciado ainda — aí
+  volta a pedir o desjejum, para que uma manhã perdida não custe o desjejum em silêncio.
+
+Mudar o horário de um gatilho não exige mexer em mais nada, desde que o da manhã continue
+antes das 08h e o da reconferência depois.
+
+### Quando os dois caminhos falham
+
+Actions → *Cardápio do RU* → **Run workflow**, sem preencher nada. O clique segue a mesma
+regra de hora acima e envia só o que ficou para trás; clicar duas vezes não repete nada.
+
+### A credencial do gatilho externo
+
+Token *fine-grained* do GitHub, criado pelo mantenedor em Settings → Developer settings →
+Personal access tokens → Fine-grained tokens:
+
+- **Repository access**: só `Tetzdesen/cardapio-ru`;
+- **Permissions**: só **Actions: Read and write** (o `Metadata: Read` vem obrigatório);
+  nada de `Contents`, `Secrets` ou administração;
+- **Validade**: um ano. **Expira em: _(anotar ao criar)_.**
+
+Ele fica guardado **só no cron-job.org**, no cabeçalho dos dois jobs — não é segredo do
+repositório. Quem o obtiver consegue disparar, cancelar ou reexecutar runs deste workflow,
+e nada além disso: não lê o `TELEGRAM_TOKEN`, não faz push e não alcança outro repositório.
+Disparos a mais são absorvidos pelo estado.
+
+- **Renovar**: antes da data acima, gere um token novo com as mesmas permissões, troque o
+  cabeçalho nos dois jobs, rode o *Test run* de cada um (tem que dar `204`), revogue o
+  antigo e atualize a data aqui.
+- **Revogar** (vazou, ou não é mais usado): apague o token na mesma tela do GitHub. A
+  reserva continua anunciando, com atraso, até existir um novo.
+
+### Onde ver o atraso
+
+Toda run — inclusive a que falha — escreve no resumo (a página da run, abaixo do grafo dos
+passos) uma linha assim:
+
+| origem | previsto | real | atraso | refeições | enviou |
+|---|---|---|---|---|---|
+| externo | 08:40Z | 08:41Z | 0h01 | desjejum,almoco,jantar | sim |
+
+`origem` é `externo` (veio do cron-job.org), `schedule` (a reserva) ou `manual` (o botão,
+sem atraso a medir). Horários em UTC. Ver `schedule` com `enviou: sim` num dia útil quer
+dizer que o gatilho externo não funcionou naquele horário.
+
+### Quando o alerta do cron-job.org chegar
+
+O e-mail diz que a chamada não deu `204`. Pelo código:
+
+- **`401`** — token expirado ou revogado. Renove como acima.
+- **`404`** — URL errada, workflow renomeado, ou token sem acesso a este repositório.
+- **`422`** — corpo inválido: `ref` inexistente ou input que o workflow não declara.
+- **`5xx`** ou tempo esgotado — instabilidade do GitHub; em geral passa sozinho.
+
+Em qualquer caso a reserva anuncia horas depois. Se o horário importa naquele dia, use o
+**Run workflow**.
+
+### O resto do workflow
 
 O workflow precisa de `contents: write`: é ele que commita `estado/ultimo-envio.json`
-quando muda, com `[skip ci]` na mensagem. Execução que não envia nada não gera commit.
+quando muda, com `[skip ci]` na mensagem. Execução que não envia nada não gera commit. Se
+`main` andou desde o checkout, o push rebaseia e tenta de novo, em vez de perder o estado.
 
 Duas execuções não se sobrepõem por causa do `concurrency: group: cardapio`, e nenhuma é
 descartada — cancelar perderia o envio que a primeira ainda não gravou. **É daí que vem a
 garantia de envio único**, já que não há mais banco com índice para dar essa garantia.
+
+O job tem teto de **10 minutos** (o ciclo normal leva menos de 40 segundos). Sem ele, uma
+execução pendurada seguraria o grupo de `concurrency` por até seis horas, e com ele o
+disparo seguinte.
 
 ## Rodar local
 
