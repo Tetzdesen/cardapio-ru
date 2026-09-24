@@ -228,13 +228,3 @@ A verificação de TLS fica sempre ligada, e não há opção para desligá-la. 
 não envia o certificado intermediário da RNP/ICPEdu, então o `rnp-icpedu.pem` empacotado
 com a aplicação completa a cadeia. Se ele faltar, a aplicação avisa **na partida**, não na
 primeira consulta que falhar.
-
----
-
-### Durante a virada
-
-O `ru_bot.py` e a suíte em `tests/` ainda estão no repositório de propósito: eles saem
-apenas depois de um ciclo completo observado na versão Java — anúncio das 05h40 e
-reconferência das 09h30, com o grupo de verdade. Enquanto estiverem aqui, voltar atrás é
-apontar o workflow de volta para o `ru_bot.py`: ele lê o mesmo arquivo de estado, no mesmo
-formato, e nada precisa ser convertido.
