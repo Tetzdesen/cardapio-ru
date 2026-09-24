@@ -44,7 +44,9 @@ class ArquivoDeEstadoTest {
 
         Map<String, String> lido = em(real).ler();
 
-        assertThat(lido).containsExactlyInAnyOrderEntriesOf(Map.of(
+        // o workflow acrescenta uma entrada por anuncio, entao o arquivo so cresce:
+        // o que importa e que as entradas herdadas continuem lidas como estavam
+        assertThat(lido).containsAllEntriesOf(Map.of(
                 "2026-09-15|almoco", "3697e402437c133a",
                 "2026-09-15|jantar", "459106b701d9f528"));
     }
