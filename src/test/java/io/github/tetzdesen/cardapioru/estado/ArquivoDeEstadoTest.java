@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.config.EstadoProperties;
 import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -37,18 +38,18 @@ class ArquivoDeEstadoTest {
     }
 
     @Test
-    void leOArquivoVersionadoNoRepositorio() {
-        // o estado que ja esta no repositorio, gravado pelo ru_bot.py
+    void leOArquivoVersionadoNoRepositorio() throws IOException {
+        // o estado que o workflow grava e commita a cada anuncio
         Path real = Path.of("estado/ultimo-envio.json");
-        assertThat(real).as("o estado herdado do ru_bot.py precisa continuar no repo").exists();
+        assertThat(real).as("o estado de envio precisa continuar no repo").exists();
 
         Map<String, String> lido = em(real).ler();
 
-        // o workflow acrescenta uma entrada por anuncio, entao o arquivo so cresce:
-        // o que importa e que as entradas herdadas continuem lidas como estavam
-        assertThat(lido).containsAllEntriesOf(Map.of(
-                "2026-09-15|almoco", "3697e402437c133a",
-                "2026-09-15|jantar", "459106b701d9f528"));
+        // as entradas mudam todo dia (anuncio acrescenta, retencao poda), entao
+        // nenhuma em particular e fixavel: o que importa e nenhuma ser descartada
+        int noArquivo = new ObjectMapper()
+                .readTree(Files.readString(real, StandardCharsets.UTF_8)).size();
+        assertThat(lido).isNotEmpty().hasSize(noArquivo);
     }
 
     @Test

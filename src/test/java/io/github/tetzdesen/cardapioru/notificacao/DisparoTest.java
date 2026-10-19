@@ -13,18 +13,30 @@ import io.github.tetzdesen.cardapioru.api.DisparoResposta;
 import io.github.tetzdesen.cardapioru.coleta.ColetorDaUfes;
 import io.github.tetzdesen.cardapioru.estado.ArquivoDeEstado;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 class DisparoTest {
 
     private static final LocalDate DIA = LocalDate.of(2026, 9, 11);
+
+    // relogio no proprio DIA: com o de parede, a poda descartaria DIA depois de 30 dias
+    @TestBean
+    private Clock relogio;
+
+    static Clock relogio() {
+        ZoneOffset fuso = ZoneOffset.ofHours(-3);
+        return Clock.fixed(DIA.atStartOfDay(fuso).toInstant(), fuso);
+    }
 
     @MockitoBean
     private ColetorDaUfes coletor;

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -42,13 +44,19 @@ public class ArquivoDeEstado {
 
     private final Path caminho;
     private final int retencaoDias;
-    private final java.time.ZoneId fuso;
+    private final Clock relogio;
     private final ObjectMapper json = new ObjectMapper();
 
-    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio) {
+    @Autowired
+    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio, Clock relogio) {
         this.caminho = estado.caminho();
         this.retencaoDias = cardapio.retencaoDias();
-        this.fuso = cardapio.fuso();
+        this.relogio = relogio;
+    }
+
+    /** Com o relogio de parede, no fuso do RU. */
+    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio) {
+        this(estado, cardapio, Clock.system(cardapio.fuso()));
     }
 
     public Path caminho() {
@@ -121,7 +129,7 @@ public class ArquivoDeEstado {
      * sem escapar acentos, com quebra de linha no fim.
      */
     public void gravar(Map<String, String> estado) {
-        String limite = LocalDate.now(fuso).minusDays(retencaoDias).toString();
+        String limite = LocalDate.now(relogio).minusDays(retencaoDias).toString();
         Map<String, String> podado = new TreeMap<>();
         for (Map.Entry<String, String> e : estado.entrySet()) {
             if (chaveValida(e.getKey())

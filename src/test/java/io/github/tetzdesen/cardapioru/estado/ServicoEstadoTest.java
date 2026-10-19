@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -38,8 +39,10 @@ class ServicoEstadoTest {
 
     @BeforeEach
     void preparar() {
+        // relogio no proprio DIA: com o de parede, a poda descartaria DIA depois de 30 dias
+        Clock relogio = Clock.fixed(DIA.atStartOfDay(props.fuso()).toInstant(), props.fuso());
         arquivo = new ArquivoDeEstado(
-                new EstadoProperties(pasta.resolve("ultimo-envio.json")), props);
+                new EstadoProperties(pasta.resolve("ultimo-envio.json")), props, relogio);
         servico = new ServicoEstado(arquivo);
     }
 
