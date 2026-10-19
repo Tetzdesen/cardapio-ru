@@ -155,7 +155,7 @@ Personal access tokens → Fine-grained tokens:
 - **Repository access**: só `Tetzdesen/cardapio-ru`;
 - **Permissions**: só **Actions: Read and write** (o `Metadata: Read` vem obrigatório);
   nada de `Contents`, `Secrets` ou administração;
-- **Validade**: um ano. **Expira em: _(anotar ao criar)_.**
+- **Validade**: um ano. **Expira em: 19/10/2027.**
 
 Ele fica guardado **só no cron-job.org**, no cabeçalho dos dois jobs — não é segredo do
 repositório. Quem o obtiver consegue disparar, cancelar ou reexecutar runs deste workflow,
