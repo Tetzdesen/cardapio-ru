@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardápio do RU</title>
+<meta name="description" content="Cardápio do dia do Restaurante Universitário da UFES Alegre">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<style>
+  :root {
+    --fundo: #f6f3ee;
+    --cartao: #ffffff;
+    --texto: #2b2622;
+    --suave: #7a7068;
+    --linha: #e8e2da;
+    --destaque: #b4532a;
+    --selo-fundo: #f3e7dc;
+    --selo-texto: #8a4a26;
+    --sombra: 0 1px 2px rgb(60 40 20 / .06), 0 8px 24px rgb(60 40 20 / .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #1b1917;
+      --cartao: #262320;
+      --texto: #eee8e1;
+      --suave: #a39a91;
+      --linha: #38332e;
+      --destaque: #e58a5c;
+      --selo-fundo: #3a2d24;
+      --selo-texto: #f0b48f;
+      --sombra: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 48px; }
+  header { margin-bottom: 28px; }
+  h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); letter-spacing: -.02em; }
+  .data { margin: 4px 0 0; color: var(--suave); }
+  .data::first-letter { text-transform: uppercase; }
+  .grade {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .refeicao {
+    background: var(--cartao);
+    border: 1px solid var(--linha);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--sombra);
+  }
+  .refeicao h2 {
+    margin: 0 0 14px;
+    font-size: 1.25rem;
+    color: var(--destaque);
+  }
+  dl { margin: 0; }
+  dt {
+    margin-top: 12px;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--suave);
+  }
+  dt:first-child { margin-top: 0; }
+  dd { margin: 2px 0 0; }
+  .selo {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: var(--selo-fundo);
+    color: var(--selo-texto);
+    font-size: .7rem;
+    font-weight: 600;
+    vertical-align: 2px;
+    cursor: help;
+  }
+  .estado {
+    background: var(--cartao);
+    border: 1px solid var(--linha);
+    border-radius: 14px;
+    padding: 28px 22px;
+    text-align: center;
+    color: var(--suave);
+  }
+  footer {
+    margin-top: 28px;
+    font-size: .85rem;
+    color: var(--suave);
+  }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Cardápio do RU</h1>
+    <p class="data" id="data">Carregando…</p>
+  </header>
+  <section class="grade" id="refeicoes" aria-live="polite"></section>
+  <footer id="rodape"></footer>
+</main>
+<script>
+  // Marcacoes que o site da UFES poe no fim do item, como "Pao Frances (CG)"
+  const SELOS = { CG: "Contém glúten", CL: "Contém lactose" };
+
+  const $ = (id) => document.getElementById(id);
+
+  function elemento(tag, classe, texto) {
+    const e = document.createElement(tag);
+    if (classe) e.className = classe;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+
+  function item(texto) {
+    const dd = elemento("dd");
+    const selos = [];
+    const nome = texto.replace(/\s*\(([A-Z]{2})\)/g, (todo, sigla) => {
+      if (!SELOS[sigla]) return todo;
+      selos.push(sigla);
+      return "";
+    });
+    dd.append(nome.trim());
+    for (const sigla of selos) {
+      const s = elemento("abbr", "selo", sigla);
+      s.title = SELOS[sigla];
+      dd.append(s);
+    }
+    return dd;
+  }
+
+  function cartao(refeicao) {
+    const art = elemento("article", "refeicao");
+    art.append(elemento("h2", null, refeicao.refeicao));
+    const dl = elemento("dl");
+    for (const secao of refeicao.secoes) {
+      if (!secao.itens.length) continue;
+      dl.append(elemento("dt", null, secao.rotulo));
+      secao.itens.forEach((i) => dl.append(item(i)));
+    }
+    art.append(dl);
+    return art;
+  }
+
+  function aviso(texto) {
+    $("refeicoes").replaceChildren(elemento("p", "estado", texto));
+  }
+
+  function dataPorExtenso(iso) {
+    const [a, m, d] = iso.split("-").map(Number);
+    return new Date(a, m - 1, d).toLocaleDateString("pt-BR",
+        { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+
+  async function carregar() {
+    let resposta;
+    try {
+      resposta = await fetch("api/v1/cardapios?refeicoes=todas");
+    } catch {
+      $("data").textContent = "";
+      return aviso("Não foi possível falar com o servidor.");
+    }
+
+    if (!resposta.ok) {
+      $("data").textContent = "";
+      const motivo = {
+        502: "O site do RU mudou ou não publicou o cardápio de hoje.",
+        504: "O site do RU está fora do ar no momento.",
+      }[resposta.status] || `Erro ${resposta.status} ao buscar o cardápio.`;
+      return aviso(motivo);
+    }
+
+    const c = await resposta.json();
+    const comItens = c.refeicoes.filter((r) => r.secoes.some((s) => s.itens.length));
+
+    $("data").textContent = comItens[0]?.dataPorExtenso || dataPorExtenso(c.data);
+    document.title = `Cardápio do RU — ${new Date(c.data + "T12:00").toLocaleDateString("pt-BR")}`;
+
+    if (!c.publicado || !comItens.length) {
+      aviso("O cardápio de hoje ainda não foi publicado.");
+    } else {
+      $("refeicoes").replaceChildren(...comItens.map(cartao));
+    }
+
+    const rodape = $("rodape");
+    if (comItens[0]?.campus) rodape.append(`Campus ${comItens[0].campus}. `);
+    const link = elemento("a", null, "Fonte: site do RU");
+    link.href = c.origem;
+    link.rel = "noopener";
+    rodape.append(link);
+  }
+
+  carregar();
+</script>
+</body>
+</html>
