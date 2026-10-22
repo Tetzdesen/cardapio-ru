@@ -11,10 +11,9 @@ import org.springframework.stereotype.Service;
  * impede o CLI e o HTTP de divergirem.
  *
  * <p>Nao ha refazer depois de uma falha: sem indice unico nao existe corrida a
- * perder, e repetir o disparo seria um segundo envio ao grupo. Duas execucoes
- * simultaneas sao problema de quem dispara -- o agendamento as serializa com
- * {@code concurrency: group}, e a spec de api-cardapio registra que duas
- * chamadas HTTP ao mesmo tempo podem enviar duas vezes.
+ * perder, e repetir o disparo seria um segundo envio ao grupo. Dois disparos no
+ * mesmo processo -- o agendador e uma chamada HTTP -- esperam um pelo outro, para
+ * que o segundo leia o estado que o primeiro gravou.
  */
 @Service
 public class ServicoNotificacao {
@@ -25,7 +24,7 @@ public class ServicoNotificacao {
         this.disparo = disparo;
     }
 
-    public DisparoResposta disparar(LocalDate data, List<String> refeicoes, String campus,
+    public synchronized DisparoResposta disparar(LocalDate data, List<String> refeicoes, String campus,
             boolean silencioso) {
         return disparo.executar(data, refeicoes, campus, silencioso);
     }

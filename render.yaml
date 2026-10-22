@@ -1,0 +1,19 @@
+# Blueprint do Render: a API no plano gratis, anunciando sozinha pelo agendador
+# interno (Agendador). Ver README, "Hospedar no Render".
+services:
+  - type: web
+    name: cardapio-ru
+    runtime: docker
+    plan: free
+    region: virginia
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: AGENDA_ATIVA
+        value: "true"
+      # 512 MB no plano gratis: sem teto, a JVM conta com a memoria da maquina
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=75 -XX:+UseSerialGC
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

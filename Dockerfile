@@ -20,7 +20,10 @@ RUN apt-get update \
   && apt-get install --no-install-recommends -y curl \
   && rm -rf /var/lib/apt/lists/*
 # usuario sem privilegio: a aplicacao nao precisa de root para servir HTTP
-RUN useradd --system --create-home --uid 10001 cardapio
+RUN useradd --system --create-home --uid 10001 cardapio \
+  && mkdir -p /app/estado && chown cardapio /app/estado
+# sem o chown, /app/estado seria do root e a gravacao do estado falharia depois
+# do envio -- e o anuncio seguinte repetiria tudo
 USER cardapio
 COPY --from=build /app/target/cardapio-ru-*.jar app.jar
 

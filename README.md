@@ -1,16 +1,16 @@
 # Cardápio do RU — UFES Alegre
 
 Lê `https://restaurante.alegre.ufes.br/cardapio` e manda o aviso do dia num chat do
-Telegram. O anúncio roda dentro do próprio GitHub Actions: baixa, formata, envia, morre.
-**Sem host, sem banco, sem infraestrutura.**
+Telegram. Roda como API no [Render](https://render.com), plano grátis, com o agendador
+dentro da própria aplicação. **Sem banco, sem agendador externo.**
 
 Spring Boot 3.5 · Java 21.
 
 ## Como funciona
 
-O runner do Actions já é um computador com rede, e roda de graça no horário certo. Ele
-constrói o jar, executa o disparo de uma tacada só e commita de volta o arquivo de estado
-quando algo mudou. O que precisa sobreviver entre uma execução e a seguinte — quais
+No Render, a API (perfil `web`) anuncia sozinha — ver "Hospedar no Render". O mesmo jar
+também faz um disparo de uma tacada só pela linha de comando, que é o que o botão manual
+do Actions roda e commita de volta o arquivo de estado quando algo mudou. O que precisa sobreviver entre uma execução e a seguinte — quais
 refeições já foram anunciadas — vive em `estado/ultimo-envio.json`, versionado com o
 projeto.
 
@@ -81,131 +81,49 @@ O arquivo só é escrito depois de o Telegram confirmar, e só com as refeiçõe
 Se o envio falhar no meio, o que já chegou ao grupo fica registrado — reenviar amanhã uma
 refeição que já chegou é pior do que deixar a falha visível no código de saída.
 
-## Agendar (GitHub Actions)
+## Hospedar no Render
 
-Settings → Secrets and variables → Actions → New repository secret: `TELEGRAM_TOKEN` (do
-[@BotFather](https://t.me/BotFather)) e `TELEGRAM_CHAT_ID` (grupo é negativo:
-`-1001234567890`). Para pegar o `chat_id`: mande uma mensagem para o bot e abra
-`https://api.telegram.org/bot<TOKEN>/getUpdates`.
+O `render.yaml` descreve o serviço. Uma vez só:
 
-O anúncio sai de segunda a sexta:
+1. No Render, **New → Blueprint**, aponte para este repositório.
+2. Preencha `TELEGRAM_TOKEN` (do [@BotFather](https://t.me/BotFather)) e
+   `TELEGRAM_CHAT_ID` (grupo é negativo: `-1001234567890`; para descobrir, mande uma
+   mensagem para o bot e abra `https://api.telegram.org/bot<TOKEN>/getUpdates`).
+3. No log do deploy, procure a linha `Started CardapioRuApplication`. Teste com
+   `curl https://<servico>.onrender.com/api/v1/cardapios`.
 
-| horário (BRT) | o que costuma acontecer |
+O anúncio sai de segunda a sexta, no fuso `America/Sao_Paulo` (`agenda.*` em
+`application.yml`):
+
+| horário | o que faz |
 |---|---|
-| **05h40** | anuncia o cardápio do dia — desjejum, almoço e jantar |
+| **05h40** | anuncia o dia inteiro — desjejum, almoço e jantar |
 | **09h30** | reconfere almoço e jantar, e só fala se algo mudou |
 
-### Quem garante o horário: o gatilho externo
+Só liga com `AGENDA_ATIVA=true`, que o `render.yaml` define: a API local e os testes não
+falam com o grupo sozinhos.
 
-O `schedule` do Actions **não serve para horário**: de 21 a 23/09 ele atrasou todas as seis
-execuções entre 4h40 e 6h38 — sem perder nenhuma, mas nenhuma perto da hora. O
-`workflow_dispatch`, ao contrário, vira run no mesmo segundo. Por isso quem dispara nos
-horários é o [cron-job.org](https://cron-job.org), chamando a API do GitHub.
+### Por que a API se pinga
 
-São dois jobs lá, com fuso **`America/Sao_Paulo`**, **segunda a sexta**, e o alerta de
-falha por e-mail **ligado**:
+O plano grátis desliga o serviço depois de 15 minutos sem requisição, e serviço desligado
+não dispara nada. A cada 10 minutos a aplicação chama o próprio `/actuator/health` pela
+URL pública (`RENDER_EXTERNAL_URL`, que o Render injeta). Precisa ser a URL pública: só o
+que passa pela borda do Render conta como tráfego. Um serviço ligado o mês inteiro cabe
+nas 750 horas grátis.
 
-| job | horário | corpo |
-|---|---|---|
-| manhã | 05:40 | `{"ref":"main","inputs":{"previsto":"08:40Z"}}` |
-| reconferência | 09:30 | `{"ref":"main","inputs":{"previsto":"12:30Z"}}` |
+### O que se perde por ser grátis
 
-Os dois com:
+O estado fica no disco do contêiner e **some quando ele reinicia** (deploy, manutenção do
+Render). Reinício entre 05h40 e 09h30 faz almoço e jantar chegarem de novo às 09h30. Não
+há reenvio de falha: se o site da UFES estiver fora às 05h40, o erro fica no log do
+Render e o próximo envio é o das 09h30.
 
-```
-POST https://api.github.com/repos/Tetzdesen/cardapio-ru/actions/workflows/cardapio.yml/dispatches
-Authorization: Bearer <token>
-Accept: application/vnd.github+json
-X-GitHub-Api-Version: 2022-11-28
-```
+### O workflow do Actions
 
-Sucesso é **`204`**, sem corpo. O `previsto` é em UTC e só serve para medir o atraso (ver
-adiante): nada do envio lê esse valor. Isto é tudo o que existe fora do repositório — com
-esta seção dá para recriar os jobs do zero.
-
-### A reserva: o `schedule` do Actions
-
-Os dois `cron` do workflow (`40 8` e `30 12`, em UTC) continuam lá, nos mesmos horários.
-No dia normal eles chegam horas depois do gatilho externo, encontram o estado já gravado e
-terminam em segundos sem enviar nada. No dia em que o externo falha, **anunciam com
-atraso** — pior que na hora, melhor que nunca. Cada refeição chega uma vez só, venha de
-onde vier a execução: quem suprime a repetição é o estado, não a ordem das execuções.
-
-### Que refeições cada execução pede
-
-Não depende de quem disparou, e sim da **hora da execução em Brasília**:
-
-- antes das **08h** → desjejum, almoço e jantar;
-- a partir das 08h → almoço e jantar, **exceto** se nada de hoje foi anunciado ainda — aí
-  volta a pedir o desjejum, para que uma manhã perdida não custe o desjejum em silêncio.
-
-Mudar o horário de um gatilho não exige mexer em mais nada, desde que o da manhã continue
-antes das 08h e o da reconferência depois.
-
-### Quando os dois caminhos falham
-
-Actions → *Cardápio do RU* → **Run workflow**, sem preencher nada. O clique segue a mesma
-regra de hora acima e envia só o que ficou para trás; clicar duas vezes não repete nada.
-
-### A credencial do gatilho externo
-
-Token *fine-grained* do GitHub, criado pelo mantenedor em Settings → Developer settings →
-Personal access tokens → Fine-grained tokens:
-
-- **Repository access**: só `Tetzdesen/cardapio-ru`;
-- **Permissions**: só **Actions: Read and write** (o `Metadata: Read` vem obrigatório);
-  nada de `Contents`, `Secrets` ou administração;
-- **Validade**: um ano. **Expira em: 19/10/2027.**
-
-Ele fica guardado **só no cron-job.org**, no cabeçalho dos dois jobs — não é segredo do
-repositório. Quem o obtiver consegue disparar, cancelar ou reexecutar runs deste workflow,
-e nada além disso: não lê o `TELEGRAM_TOKEN`, não faz push e não alcança outro repositório.
-Disparos a mais são absorvidos pelo estado.
-
-- **Renovar**: antes da data acima, gere um token novo com as mesmas permissões, troque o
-  cabeçalho nos dois jobs, rode o *Test run* de cada um (tem que dar `204`), revogue o
-  antigo e atualize a data aqui.
-- **Revogar** (vazou, ou não é mais usado): apague o token na mesma tela do GitHub. A
-  reserva continua anunciando, com atraso, até existir um novo.
-
-### Onde ver o atraso
-
-Toda run — inclusive a que falha — escreve no resumo (a página da run, abaixo do grafo dos
-passos) uma linha assim:
-
-| origem | previsto | real | atraso | refeições | enviou |
-|---|---|---|---|---|---|
-| externo | 08:40Z | 08:41Z | 0h01 | desjejum,almoco,jantar | sim |
-
-`origem` é `externo` (veio do cron-job.org), `schedule` (a reserva) ou `manual` (o botão,
-sem atraso a medir). Horários em UTC. Ver `schedule` com `enviou: sim` num dia útil quer
-dizer que o gatilho externo não funcionou naquele horário.
-
-### Quando o alerta do cron-job.org chegar
-
-O e-mail diz que a chamada não deu `204`. Pelo código:
-
-- **`401`** — token expirado ou revogado. Renove como acima.
-- **`404`** — URL errada, workflow renomeado, ou token sem acesso a este repositório.
-- **`422`** — corpo inválido: `ref` inexistente ou input que o workflow não declara.
-- **`5xx`** ou tempo esgotado — instabilidade do GitHub; em geral passa sozinho.
-
-Em qualquer caso a reserva anuncia horas depois. Se o horário importa naquele dia, use o
-**Run workflow**.
-
-### O resto do workflow
-
-O workflow precisa de `contents: write`: é ele que commita `estado/ultimo-envio.json`
-quando muda, com `[skip ci]` na mensagem. Execução que não envia nada não gera commit. Se
-`main` andou desde o checkout, o push rebaseia e tenta de novo, em vez de perder o estado.
-
-Duas execuções não se sobrepõem por causa do `concurrency: group: cardapio`, e nenhuma é
-descartada — cancelar perderia o envio que a primeira ainda não gravou. **É daí que vem a
-garantia de envio único**, já que não há mais banco com índice para dar essa garantia.
-
-O job tem teto de **10 minutos** (o ciclo normal leva menos de 40 segundos). Sem ele, uma
-execução pendurada seguraria o grupo de `concurrency` por até seis horas, e com ele o
-disparo seguinte.
+Ficou só como botão manual (Actions → *Cardápio do RU* → **Run workflow**), sem
+`schedule`. Ele lê o estado do repositório, não o do Render, então pode repetir o que a
+API já mandou — use só se o Render estiver fora. Ele precisa dos secrets `TELEGRAM_TOKEN`
+e `TELEGRAM_CHAT_ID`.
 
 ## Rodar local
 
@@ -227,11 +145,10 @@ Nenhuma variável é obrigatória para `--print`. Para `--enviar`, defina `TELEG
 O resto — URL base, User-Agent, timeout, tentativas, retenção, cache — está em
 `application.yml` e raramente precisa mudar.
 
-## A API HTTP (opcional)
+## A API HTTP
 
-A aplicação também serve HTTP, sobre o mesmo arquivo de estado. **Ela não participa do
-agendamento** — existe para uso local, para um disparo manual, ou para hospedar depois,
-se algum dia for útil ter o cardápio como JSON.
+É o modo que roda no Render (perfil `web`): consulta em JSON, disparo manual e o
+agendador.
 
 ```bash
 java -jar target/cardapio-ru-*.jar --spring.profiles.active=web
@@ -259,8 +176,8 @@ Status: `200` cardápio entregue (inclusive vazio) ou disparo sem novidade; `400
 inválido; `401` sem token ou token errado; `502` página irreconhecível ou Telegram
 recusou; `503` o estado não pôde ser gravado; `504` site inacessível.
 
-**Chamadas simultâneas ao disparo podem enviar duas vezes** — não há reserva antes do
-envio. Quem chama serializa; é o que o agendamento faz.
+Disparos simultâneos no mesmo processo — o agendador e uma chamada HTTP — esperam um pelo
+outro. Sem `API_TOKEN` definido, como no `render.yaml`, o `POST` recusa tudo.
 
 O `Dockerfile` empacota a API (perfil `web` já ativado, `curl` instalado para o
 `HEALTHCHECK`). Monte um volume em `/app/estado`: sem ele o estado some a cada reinício e

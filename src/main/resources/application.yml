@@ -59,6 +59,18 @@ telegram:
 api:
   token: ${API_TOKEN:}
 
+# O anuncio pela propria API (perfil 'web'), para hospedar sem agendador externo.
+# Desligado por padrao: so o host de verdade liga, com AGENDA_ATIVA=true.
+agenda:
+  ativa: ${AGENDA_ATIVA:false}
+  fuso: America/Sao_Paulo
+  manha: "0 40 5 * * MON-FRI"
+  reconferencia: "0 30 9 * * MON-FRI"
+  # O Render injeta RENDER_EXTERNAL_URL. Abaixo dos 15 minutos que ele espera
+  # antes de desligar o servico por inatividade.
+  url-publica: ${RENDER_EXTERNAL_URL:}
+  manter-acordado: 10m
+
 logging:
   level:
     io.github.tetzdesen.cardapioru: INFO

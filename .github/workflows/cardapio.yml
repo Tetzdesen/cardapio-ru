@@ -1,14 +1,10 @@
 name: Cardápio do RU
 
-# O horário vem de um gatilho externo (cron-job.org) que chama o
-# workflow_dispatch às 05h40 e 09h30 BRT: o schedule do Actions tem atrasado
-# horas. Os dois cron abaixo ficam de reserva, nos mesmos horários — quando o
-# externo funcionou, a reserva encontra o estado gravado e não envia nada.
+# Quem anuncia é a API no Render, pelo agendador interno. Este workflow ficou só
+# como botão manual — e lê o estado do repositório, não o do Render, então pode
+# repetir o que a API já mandou. Sem schedule: dois anunciantes com estados
+# separados mandariam tudo duas vezes.
 on:
-  schedule:
-    # cron do Actions é em UTC; BRT = UTC-3
-    - cron: '40 8 * * 1-5'   # 05h40 BRT — reserva do anúncio da manhã
-    - cron: '30 12 * * 1-5'  # 09h30 BRT — reserva da reconferência
   workflow_dispatch:
     inputs:
       # Só para medir o atraso: nenhuma decisão de envio lê este valor.
