@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cardápio do RU</title>
 <meta name="description" content="Cardápio do dia do Restaurante Universitário da UFES Alegre">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23111'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' fill='%23fff' text-anchor='middle'>RU</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d6efd'/><text x='16' y='21' font-family='system-ui,sans-serif' font-size='13' font-weight='700' fill='%23fff' text-anchor='middle'>RU</text></svg>">
 <script>
   // Antes de pintar: sem isso a pagina pisca no tema errado ao carregar
   (function () {
@@ -14,159 +14,46 @@
     if (tema !== "claro" && tema !== "escuro") {
       tema = matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
     }
-    document.documentElement.dataset.tema = tema;
+    document.documentElement.dataset.bsTheme = tema === "escuro" ? "dark" : "light";
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
 <style>
-  :root {
-    --fundo: #ffffff;
-    --texto: #141414;
-    --suave: #737373;
-    --linha: #e4e4e4;
-    color-scheme: light;
-  }
-  :root[data-tema="escuro"] {
-    --fundo: #0c0c0c;
-    --texto: #ececec;
-    --suave: #8c8c8c;
-    --linha: #262626;
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--fundo);
-    color: var(--texto);
-    font: 18px/1.45 "Newsreader", Georgia, "Times New Roman", serif;
-    -webkit-font-smoothing: antialiased;
-    transition: background-color .2s, color .2s;
-  }
-  main { max-width: 1120px; margin: 0 auto; padding: 0 20px 56px; }
-
-  .topo {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--texto);
-    font-size: .85rem;
-  }
-  .tema {
-    font: inherit;
-    color: inherit;
-    background: none;
-    border: 0;
-    padding: 4px 0;
-    cursor: pointer;
-    border-bottom: 1px solid transparent;
-  }
-  .tema:hover { border-bottom-color: currentColor; }
-  .tema:focus-visible { outline: 1px solid currentColor; outline-offset: 4px; }
-
-  .dia { padding: 48px 0 40px; }
-  .dia h1 {
-    margin: 0;
-    font-weight: 400;
-    font-size: clamp(2.6rem, 8vw, 4.75rem);
-    line-height: 1;
-    letter-spacing: -.025em;
-  }
-  .dia p { margin: 10px 0 0; font-size: 1.15rem; color: var(--suave); font-style: italic; }
-
-  .refeicoes {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid var(--linha);
-  }
-  .refeicao { padding: 28px 32px 8px; border-left: 1px solid var(--linha); }
-  .refeicao:first-child { padding-left: 0; border-left: 0; }
-  .refeicao:last-child { padding-right: 0; }
-  .refeicao h2 {
-    margin: 0 0 24px;
-    font-size: 1.6rem;
-    font-weight: 500;
-    letter-spacing: -.01em;
-  }
-  dl { margin: 0; }
-  dt {
-    margin-top: 18px;
-    font-size: .8rem;
-    font-style: italic;
-    color: var(--suave);
-  }
-  dt:first-child { margin-top: 0; }
-  dd { margin: 1px 0 0; }
-  .principal { font-size: 1.25rem; font-weight: 500; line-height: 1.3; }
-  .selo {
-    margin-left: .35em;
-    font-size: .62em;
-    letter-spacing: .06em;
-    color: var(--suave);
-    text-decoration: none;
-    vertical-align: .35em;
-  }
-
-  .vazio {
-    grid-column: 1 / -1;
-    padding: 40px 0;
-    font-size: 1.3rem;
-    font-style: italic;
-    color: var(--suave);
-  }
-
-  footer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px 24px;
-    margin-top: 48px;
-    padding-top: 16px;
-    border-top: 1px solid var(--linha);
-    font-size: .85rem;
-    color: var(--suave);
-  }
-  footer a { color: inherit; text-underline-offset: 3px; }
-  footer:empty { display: none; }
-
-  @media (max-width: 760px) {
-    body { font-size: 17px; }
-    .dia { padding: 36px 0 28px; }
-    .refeicoes { grid-template-columns: 1fr; }
-    .refeicao,
-    .refeicao:first-child,
-    .refeicao:last-child {
-      padding: 28px 0;
-      border-left: 0;
-      border-top: 1px solid var(--linha);
-    }
-    .refeicao:first-child { border-top: 0; }
-  }
+  .selo { cursor: help; text-decoration: none; }
+  .icone { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; font-size: 1.25rem; }
 </style>
 </head>
-<body>
-<main>
-  <div class="topo">
-    <span>Restaurante Universitário · UFES</span>
-    <button class="tema" id="tema" type="button"></button>
+<body class="bg-body-tertiary">
+<nav class="navbar bg-body border-bottom">
+  <div class="container">
+    <span class="navbar-brand fw-semibold">Cardápio do RU <small class="text-body-secondary fw-normal">· UFES</small></span>
+    <button class="btn btn-outline-secondary btn-sm" id="tema" type="button"></button>
   </div>
+</nav>
 
-  <header class="dia">
-    <h1 id="semana">Cardápio</h1>
-    <p id="data">carregando…</p>
+<main class="container py-4">
+  <header class="mb-4">
+    <h1 class="h2 mb-1" id="semana">Cardápio</h1>
+    <p class="text-body-secondary mb-0" id="data">carregando…</p>
   </header>
 
-  <section class="refeicoes" id="refeicoes" aria-live="polite"></section>
+  <section class="row g-4" id="refeicoes" aria-live="polite">
+    <div class="col-12 text-center py-5">
+      <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando…</span></div>
+    </div>
+  </section>
 
-  <footer id="rodape"></footer>
+  <footer class="d-flex flex-wrap justify-content-between gap-2 mt-4 pt-3 border-top small text-body-secondary" id="rodape"></footer>
 </main>
 <script>
   // Marcacoes que o site da UFES poe no fim do item, como "Pao Frances (CG)"
   const SELOS = { CG: "contém glúten", CL: "contém lactose" };
   // O prato que define a refeicao ganha destaque; o resto e lista
   const PRINCIPAIS = new Set(["Prato Proteico", "Opção"]);
+  const ICONES = { "Desjejum": "bi-cup-hot", "Almoço": "bi-sun", "Jantar": "bi-moon-stars" };
 
   const $ = (id) => document.getElementById(id);
 
@@ -180,16 +67,16 @@
   // Tema -----------------------------------------------------------------
 
   function rotularTema() {
-    const escuro = document.documentElement.dataset.tema === "escuro";
+    const escuro = document.documentElement.dataset.bsTheme === "dark";
     const botao = $("tema");
     botao.textContent = escuro ? "Fundo claro" : "Fundo escuro";
     botao.setAttribute("aria-label", escuro ? "Mudar para fundo claro" : "Mudar para fundo escuro");
   }
 
   $("tema").addEventListener("click", () => {
-    const novo = document.documentElement.dataset.tema === "escuro" ? "claro" : "escuro";
-    document.documentElement.dataset.tema = novo;
-    try { localStorage.setItem("tema", novo); } catch {}
+    const escuro = document.documentElement.dataset.bsTheme !== "dark";
+    document.documentElement.dataset.bsTheme = escuro ? "dark" : "light";
+    try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch {}
     rotularTema();
   });
   rotularTema();
@@ -197,37 +84,48 @@
   // Cardapio -------------------------------------------------------------
 
   function item(texto, principal) {
-    const dd = elemento("dd", principal ? "principal" : null);
+    const linha = elemento("div", principal ? "fs-5 fw-semibold" : null);
     const selos = [];
     const nome = texto.replace(/\s*\(([A-Z]{2})\)/g, (todo, sigla) => {
       if (!SELOS[sigla]) return todo;
       selos.push(sigla);
       return "";
     });
-    dd.append(nome.trim());
+    linha.append(nome.trim());
     for (const sigla of selos) {
-      const s = elemento("abbr", "selo", sigla);
+      const s = elemento("abbr", "selo badge text-bg-secondary ms-2 fw-normal", sigla);
       s.title = SELOS[sigla];
-      dd.append(s);
+      linha.append(s);
     }
-    return { dd, selos };
+    return { linha, selos };
   }
 
   function coluna(refeicao, usados) {
-    const art = elemento("article", "refeicao");
-    art.append(elemento("h2", null, refeicao.refeicao));
-    const dl = elemento("dl");
+    const col = elemento("div", "col-12 col-md-4");
+    const card = elemento("article", "card h-100 border-0 shadow-sm");
+
+    const cabecalho = elemento("div", "card-header bg-body d-flex align-items-center gap-3 py-3");
+    const icone = elemento("span", "icone rounded-3 bg-primary-subtle text-primary-emphasis");
+    icone.append(elemento("i", `bi ${ICONES[refeicao.refeicao] || "bi-egg-fried"}`));
+    icone.firstChild.setAttribute("aria-hidden", "true");
+    cabecalho.append(icone, elemento("h2", "h5 mb-0", refeicao.refeicao));
+    card.append(cabecalho);
+
+    const ul = elemento("ul", "list-group list-group-flush");
     for (const secao of refeicao.secoes) {
       if (!secao.itens.length) continue;
-      dl.append(elemento("dt", null, secao.rotulo));
+      const li = elemento("li", "list-group-item py-3");
+      li.append(elemento("div", "small text-uppercase fw-semibold text-body-secondary mb-1", secao.rotulo));
       for (const i of secao.itens) {
-        const { dd, selos } = item(i, PRINCIPAIS.has(secao.rotulo));
+        const { linha, selos } = item(i, PRINCIPAIS.has(secao.rotulo));
         selos.forEach((s) => usados.add(s));
-        dl.append(dd);
+        li.append(linha);
       }
+      ul.append(li);
     }
-    art.append(dl);
-    return art;
+    card.append(ul);
+    col.append(card);
+    return col;
   }
 
   function mostrarData(iso) {
@@ -240,8 +138,10 @@
     document.title = `Cardápio do RU · ${data.toLocaleDateString("pt-BR")}`;
   }
 
-  function vazio(texto) {
-    $("refeicoes").replaceChildren(elemento("p", "vazio", texto));
+  function vazio(texto, tipo = "secondary") {
+    const col = elemento("div", "col-12");
+    col.append(elemento("div", `alert alert-${tipo} mb-0`, texto));
+    $("refeicoes").replaceChildren(col);
   }
 
   async function carregar() {
@@ -250,7 +150,7 @@
       resposta = await fetch("api/v1/cardapios?refeicoes=todas");
     } catch {
       $("data").textContent = "";
-      return vazio("Não foi possível falar com o servidor.");
+      return vazio("Não foi possível falar com o servidor.", "danger");
     }
 
     if (!resposta.ok) {
@@ -259,7 +159,7 @@
         502: "O site do RU não publicou o cardápio de hoje, ou mudou de formato.",
         504: "O site do RU está fora do ar no momento.",
       }[resposta.status] || `Erro ${resposta.status} ao buscar o cardápio.`;
-      return vazio(motivo);
+      return vazio(motivo, "warning");
     }
 
     const c = await resposta.json();
@@ -268,7 +168,7 @@
 
     const usados = new Set();
     if (!c.publicado || !comItens.length) {
-      vazio("O cardápio de hoje ainda não foi publicado.");
+      vazio("O cardápio de hoje ainda não foi publicado.", "info");
     } else {
       $("refeicoes").replaceChildren(...comItens.map((r) => coluna(r, usados)));
     }
@@ -276,7 +176,7 @@
     const rodape = $("rodape");
     const esquerda = elemento("span");
     if (comItens[0]?.campus) esquerda.append(`Campus ${comItens[0].campus} · `);
-    const link = elemento("a", null, "fonte");
+    const link = elemento("a", "link-secondary", "fonte");
     link.href = c.origem;
     link.rel = "noopener";
     esquerda.append(link);
