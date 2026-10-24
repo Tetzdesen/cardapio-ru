@@ -35,9 +35,19 @@
 </nav>
 
 <main class="container py-4">
-  <header class="mb-4">
-    <h1 class="h2 mb-1" id="semana">Cardápio</h1>
-    <p class="text-body-secondary mb-0" id="data">carregando…</p>
+  <header class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1" id="semana">Cardápio</h1>
+      <p class="text-body-secondary mb-0" id="data">carregando…</p>
+    </div>
+    <form class="d-flex gap-2" id="calendario">
+      <div class="input-group">
+        <button class="btn btn-outline-secondary" id="anterior" type="button" aria-label="Dia anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <input class="form-control" id="escolha" type="date" aria-label="Data do cardápio" required>
+        <button class="btn btn-outline-secondary" id="seguinte" type="button" aria-label="Dia seguinte"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <button class="btn btn-primary" id="hoje" type="button">Hoje</button>
+    </form>
   </header>
 
   <section class="row g-4" id="refeicoes" aria-live="polite">
@@ -86,9 +96,11 @@
   function item(texto, principal) {
     const linha = elemento("div", principal ? "fs-5 fw-semibold" : null);
     const selos = [];
-    const nome = texto.replace(/\s*\(([A-Z]{2})\)/g, (todo, sigla) => {
-      if (!SELOS[sigla]) return todo;
-      selos.push(sigla);
+    // Pode vir mais de uma no mesmo parentese: "Fricasse de Frango (CG/CL)"
+    const nome = texto.replace(/\s*\(([A-Z]{2}(?:\/[A-Z]{2})*)\)/g, (todo, grupo) => {
+      const siglas = grupo.split("/");
+      if (!siglas.every((s) => SELOS[s])) return todo;
+      selos.push(...siglas);
       return "";
     });
     linha.append(nome.trim());
@@ -144,31 +156,74 @@
     $("refeicoes").replaceChildren(col);
   }
 
-  async function carregar() {
+  // Calendario -----------------------------------------------------------
+
+  // "Hoje" e o de Alegre, nao o do navegador: o servidor decide o dia no mesmo fuso
+  const hojeEmAlegre = () =>
+      new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+
+  function somarDias(iso, dias) {
+    const [a, m, d] = iso.split("-").map(Number);
+    const data = new Date(Date.UTC(a, m - 1, d + dias));
+    return data.toISOString().slice(0, 10);
+  }
+
+  // A data escolhida fica na URL para o link poder ser compartilhado
+  function irPara(iso) {
+    const url = new URL(location.href);
+    if (iso && iso !== hojeEmAlegre()) url.searchParams.set("data", iso);
+    else url.searchParams.delete("data");
+    history.replaceState(null, "", url);
+    carregar(iso || hojeEmAlegre());
+  }
+
+  $("escolha").addEventListener("change", (e) => { if (e.target.value) irPara(e.target.value); });
+  $("anterior").addEventListener("click", () => irPara(somarDias($("escolha").value, -1)));
+  $("seguinte").addEventListener("click", () => irPara(somarDias($("escolha").value, 1)));
+  $("hoje").addEventListener("click", () => irPara(null));
+  $("calendario").addEventListener("submit", (e) => e.preventDefault());
+
+  // Carga ----------------------------------------------------------------
+
+  // O spinner que vem no HTML serve de modelo para as cargas seguintes
+  const CARREGANDO = $("refeicoes").firstElementChild.cloneNode(true);
+  let pedidoAtual = 0;
+
+  async function carregar(iso) {
+    // Cliques rapidos nas setas: so a resposta do ultimo pedido vale
+    const pedido = ++pedidoAtual;
+    const ehHoje = iso === hojeEmAlegre();
+    $("escolha").value = iso;
+    $("hoje").disabled = ehHoje;
+    mostrarData(iso);
+    $("rodape").replaceChildren();
+    $("refeicoes").replaceChildren(CARREGANDO.cloneNode(true));
+
     let resposta;
     try {
-      resposta = await fetch("api/v1/cardapios?refeicoes=todas");
+      resposta = await fetch(`api/v1/cardapios/${iso}?refeicoes=todas`);
     } catch {
-      $("data").textContent = "";
+      if (pedido !== pedidoAtual) return;
       return vazio("Não foi possível falar com o servidor.", "danger");
     }
+    if (pedido !== pedidoAtual) return;
 
+    const dia = ehHoje ? "de hoje" : "deste dia";
     if (!resposta.ok) {
-      $("data").textContent = "";
       const motivo = {
-        502: "O site do RU não publicou o cardápio de hoje, ou mudou de formato.",
+        502: `O site do RU não publicou o cardápio ${dia}, ou mudou de formato.`,
         504: "O site do RU está fora do ar no momento.",
       }[resposta.status] || `Erro ${resposta.status} ao buscar o cardápio.`;
       return vazio(motivo, "warning");
     }
 
     const c = await resposta.json();
+    if (pedido !== pedidoAtual) return;
     const comItens = c.refeicoes.filter((r) => r.secoes.some((s) => s.itens.length));
-    mostrarData(c.data);
 
     const usados = new Set();
     if (!c.publicado || !comItens.length) {
-      vazio("O cardápio de hoje ainda não foi publicado.", "info");
+      vazio(`O cardápio ${dia} ainda não foi publicado.`, "info");
     } else {
       $("refeicoes").replaceChildren(...comItens.map((r) => coluna(r, usados)));
     }
@@ -187,7 +242,8 @@
     }
   }
 
-  carregar();
+  const pedida = new URLSearchParams(location.search).get("data");
+  irPara(/^\d{4}-\d{2}-\d{2}$/.test(pedida || "") ? pedida : null);
 </script>
 </body>
 </html>
