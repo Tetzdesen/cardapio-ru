@@ -1,0 +1,48 @@
+# O WAHA conectado ao WhatsApp, para o bot mandar o cardapio num grupo. Roda
+# fora do Render: a sessao do WhatsApp precisa de disco que sobreviva a
+# reinicios, senao o QR code tem de ser escaneado de novo. Ver README.md.
+services:
+  waha:
+    # Motor NOWEB: fala o protocolo do WhatsApp Web por websocket, sem Chromium,
+    # e cabe numa maquina pequena. Em ARM (Raspberry, Oracle Ampere) use
+    # devlikeapro/waha:noweb-arm.
+    image: devlikeapro/waha:noweb
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      TZ: America/Sao_Paulo
+    volumes:
+      # a sessao: perder esta pasta e ter de escanear o QR de novo
+      - ./sessions:/app/.sessions
+      - ./media:/app/.media
+    # Sem porta publicada: so o Caddy fala com o WAHA, e o mundo so com o Caddy.
+    expose:
+      - "3000"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # O bot roda no Render e chama o WAHA pela internet; o Caddy poe HTTPS na
+  # frente, com certificado do Let's Encrypt emitido sozinho, para que a chave
+  # da API nao trafegue em texto puro.
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - waha
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+
+volumes:
+  # os certificados: perde-los forca reemitir, e o Let's Encrypt limita reemissoes
+  caddy-dados:

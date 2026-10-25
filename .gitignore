@@ -3,3 +3,8 @@ target/
 
 # HTML baixado à mão para depurar o parser
 pagina.html
+
+# Segredos e sessao do WAHA (whatsapp/)
+whatsapp/.env
+whatsapp/sessions/
+whatsapp/media/
