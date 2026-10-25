@@ -24,3 +24,6 @@ services:
         sync: false
       - key: WHATSAPP_CHAT_ID
         sync: false
+      # nome da sessao no WAHA; vazio usa "default"
+      - key: WHATSAPP_SESSAO
+        sync: false
