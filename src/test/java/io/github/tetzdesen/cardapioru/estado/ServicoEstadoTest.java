@@ -8,6 +8,7 @@ import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
 import io.github.tetzdesen.cardapioru.dominio.Secao;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Classificacao;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Situacao;
+import io.github.tetzdesen.cardapioru.notificacao.Canal;
 import io.github.tetzdesen.cardapioru.notificacao.Formatador;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -61,7 +62,7 @@ class ServicoEstadoTest {
         BlocoRefeicao jantar = bloco("Jantar", "Rúcula");
         estadoGravado(json(Map.of("2026-09-16|almoco", Formatador.assinatura(almoco))));
 
-        List<Classificacao> c = servico.classificar(DIA, List.of(almoco, jantar));
+        List<Classificacao> c = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco, jantar));
 
         assertThat(c.get(0).situacao()).isEqualTo(Situacao.INALTERADA);
         assertThat(c.get(1).situacao()).isEqualTo(Situacao.INEDITA);
@@ -77,7 +78,7 @@ class ServicoEstadoTest {
                 "2026-09-16|almoco", Formatador.assinatura(almoco),
                 "2026-09-16|jantar", Formatador.assinatura(jantar))));
 
-        List<Classificacao> c = servico.classificar(DIA, List.of(almoco, jantar));
+        List<Classificacao> c = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco, jantar));
 
         assertThat(c).allMatch(x -> !x.precisaEnviar());
     }
@@ -90,7 +91,7 @@ class ServicoEstadoTest {
                 "2026-09-16|almoco", "assinatura-antiga",
                 "2026-09-16|jantar", Formatador.assinatura(jantar))));
 
-        List<Classificacao> c = servico.classificar(DIA, List.of(almoco, jantar));
+        List<Classificacao> c = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco, jantar));
 
         assertThat(c.get(0).situacao()).isEqualTo(Situacao.MUDOU);
         assertThat(c.get(1).situacao()).isEqualTo(Situacao.INALTERADA);
@@ -101,7 +102,7 @@ class ServicoEstadoTest {
         BlocoRefeicao almoco = bloco("Almoço", "Alface");
         estadoGravado(json(Map.of("2026-09-15|almoco", Formatador.assinatura(almoco))));
 
-        List<Classificacao> c = servico.classificar(DIA, List.of(almoco));
+        List<Classificacao> c = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco));
 
         assertThat(c).singleElement()
                 .extracting(Classificacao::situacao).isEqualTo(Situacao.INEDITA);
@@ -109,7 +110,7 @@ class ServicoEstadoTest {
 
     @Test
     void estadoVazioTornaTudoInedito() {
-        List<Classificacao> c = servico.classificar(DIA,
+        List<Classificacao> c = servico.classificar(DIA, Canal.TELEGRAM,
                 List.of(bloco("Almoço", "Alface"), bloco("Jantar", "Rúcula")));
 
         assertThat(c).allMatch(x -> x.situacao() == Situacao.INEDITA);
@@ -119,18 +120,34 @@ class ServicoEstadoTest {
     void semBancoDeDadosOEstadoEhLidoEGravadoNormalmente() {
         // nenhuma variavel de banco definida em lugar nenhum: o arquivo basta
         BlocoRefeicao almoco = bloco("Almoço", "Alface");
-        List<Classificacao> primeira = servico.classificar(DIA, List.of(almoco));
-        servico.registrar(DIA, primeira);
+        List<Classificacao> primeira = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco));
+        servico.registrar(DIA, Canal.TELEGRAM, primeira);
 
-        List<Classificacao> segunda = servico.classificar(DIA, List.of(almoco));
+        List<Classificacao> segunda = servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco));
 
         assertThat(segunda).singleElement()
                 .extracting(Classificacao::situacao).isEqualTo(Situacao.INALTERADA);
     }
 
     @Test
+    void cadaCanalTemOSeuEstado() throws IOException {
+        BlocoRefeicao almoco = bloco("Almoço", "Alface");
+        servico.registrar(DIA, Canal.TELEGRAM,
+                servico.classificar(DIA, Canal.TELEGRAM, List.of(almoco)));
+
+        // o Telegram ja recebeu; para o WhatsApp o almoco continua inedito
+        List<Classificacao> noWhatsapp = servico.classificar(DIA, "whatsapp", List.of(almoco));
+        assertThat(noWhatsapp).singleElement()
+                .extracting(Classificacao::situacao).isEqualTo(Situacao.INEDITA);
+
+        servico.registrar(DIA, "whatsapp", noWhatsapp);
+        assertThat(Files.readString(pasta.resolve("ultimo-envio.json"), StandardCharsets.UTF_8))
+                .contains("\"2026-09-16|almoco\"", "\"2026-09-16|almoco|whatsapp\"");
+    }
+
+    @Test
     void registrarNadaNaoCriaArquivo() {
-        servico.registrar(DIA, List.of());
+        servico.registrar(DIA, Canal.TELEGRAM, List.of());
 
         assertThat(pasta.resolve("ultimo-envio.json")).doesNotExist();
     }

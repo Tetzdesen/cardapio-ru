@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import io.github.tetzdesen.cardapioru.Fixtures;
 import io.github.tetzdesen.cardapioru.api.DisparoResposta;
 import io.github.tetzdesen.cardapioru.coleta.ColetorDaUfes;
+import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
 import io.github.tetzdesen.cardapioru.estado.ArquivoDeEstado;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
 import java.time.Clock;
@@ -44,6 +45,10 @@ class DisparoTest {
     @MockitoBean
     private ClienteTelegram telegram;
 
+    // sem stub, configurado() e false: o WhatsApp fica de fora, como sem WHATSAPP_*
+    @MockitoBean
+    private ClienteWhatsapp whatsapp;
+
     @Autowired
     private ServicoNotificacao servico;
 
@@ -59,6 +64,8 @@ class DisparoTest {
         cardapio.limparCache();
         given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.COMPLETA));
         given(coletor.urlDe(any())).willReturn("https://restaurante.alegre.ufes.br/cardapio");
+        given(telegram.configurado()).willReturn(true);
+        given(telegram.nome()).willReturn(Canal.TELEGRAM);
         given(telegram.enviar(any())).willAnswer(inv -> {
             List<Peca> pecas = inv.getArgument(0);
             return pecas.stream().map(Peca::refeicao).filter(r -> r != null).toList();
@@ -118,11 +125,12 @@ class DisparoTest {
 
     @Test
     void telegramRecusaEOEstadoNaoFicaGravado() {
-        willThrow(new ClienteTelegram.FalhaDeEnvio("Telegram respondeu 400", List.of(), null))
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
+                "Telegram respondeu 400", List.of(), null))
                 .given(telegram).enviar(any());
 
         assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class);
+                .isInstanceOf(FalhaDeEnvio.class);
 
         assertThat(arquivo.ler())
                 .as("nada pode ficar gravado quando o envio falhou")
@@ -131,10 +139,11 @@ class DisparoTest {
 
     @Test
     void depoisDeUmaFalhaODisparoSeguinteTentaDeNovo() {
-        willThrow(new ClienteTelegram.FalhaDeEnvio("falhou", List.of(), null))
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
+                "falhou", List.of(), null))
                 .given(telegram).enviar(any());
         assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class);
+                .isInstanceOf(FalhaDeEnvio.class);
 
         // willReturn().given() em vez de given(mock.metodo()): a segunda forma
         // chamaria enviar(), que neste ponto ainda esta stubado para lancar
@@ -174,11 +183,12 @@ class DisparoTest {
     void envioParcialGravaSoAsRefeicoesConfirmadas() {
         // a primeira mensagem foi aceita, a segunda nao: o que chegou ao grupo
         // fica registrado, para nao voltar la no disparo seguinte
-        willThrow(new ClienteTelegram.FalhaDeEnvio("Telegram respondeu 400",
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
+                "Telegram respondeu 400",
                 List.of("desjejum", "almoco"), null)).given(telegram).enviar(any());
 
         assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class);
+                .isInstanceOf(FalhaDeEnvio.class);
 
         assertThat(arquivo.ler()).containsOnlyKeys(
                 ArquivoDeEstado.chave(DIA, "desjejum"),
@@ -187,10 +197,11 @@ class DisparoTest {
 
     @Test
     void disparoSeguinteAposFalhaParcialSoMandaOQueFaltou() {
-        willThrow(new ClienteTelegram.FalhaDeEnvio("Telegram respondeu 400",
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
+                "Telegram respondeu 400",
                 List.of("desjejum", "almoco"), null)).given(telegram).enviar(any());
         assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class);
+                .isInstanceOf(FalhaDeEnvio.class);
 
         org.mockito.BDDMockito.willReturn(List.of("jantar")).given(telegram).enviar(any());
         cardapio.limparCache();
@@ -199,6 +210,67 @@ class DisparoTest {
 
         assertThat(r.enviadas()).containsExactly("Jantar");
         assertThat(r.omitidas()).containsExactly("Desjejum", "Almoço");
+    }
+
+    @Test
+    void whatsappConfiguradoRecebeOMesmoAvisoComEstadoProprio() {
+        ligarWhatsapp();
+
+        DisparoResposta r = servico.disparar(DIA, List.of(), "alegre", true);
+
+        assertThat(r.enviadas()).containsExactly("Desjejum", "Almoço", "Jantar");
+        verify(telegram).enviar(any());
+        verify(whatsapp).enviar(any());
+        assertThat(arquivo.ler()).hasSize(6)
+                .containsKeys(ArquivoDeEstado.chave(DIA, "almoco"),
+                        ArquivoDeEstado.chave(DIA, "almoco", "whatsapp"));
+    }
+
+    @Test
+    void falhaNoWhatsappNaoImpedeOTelegramEODisparoSeguinteSoMandaAoWhatsapp() {
+        ligarWhatsapp();
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.WHATSAPP_RECUSOU, "WAHA respondeu 503",
+                List.of(), null)).given(whatsapp).enviar(any());
+
+        assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
+                .isInstanceOfSatisfying(FalhaDeEnvio.class, e ->
+                        assertThat(e.causa()).isEqualTo(FalhaDeOrigem.Causa.WHATSAPP_RECUSOU));
+        verify(telegram).enviar(any());
+        assertThat(arquivo.ler()).as("o Telegram recebeu e fica gravado; o WhatsApp nao")
+                .containsOnlyKeys(ArquivoDeEstado.chave(DIA, "desjejum"),
+                        ArquivoDeEstado.chave(DIA, "almoco"),
+                        ArquivoDeEstado.chave(DIA, "jantar"));
+
+        org.mockito.BDDMockito.willReturn(List.of("desjejum", "almoco", "jantar"))
+                .given(whatsapp).enviar(any());
+        cardapio.limparCache();
+
+        DisparoResposta r = servico.disparar(DIA, List.of(), "alegre", true);
+
+        assertThat(r.enviadas()).containsExactly("Desjejum", "Almoço", "Jantar");
+        assertThat(r.omitidas()).isEmpty();
+        verify(telegram).enviar(any());
+        assertThat(arquivo.ler()).hasSize(6);
+    }
+
+    @Test
+    void semNenhumCanalConfiguradoFalhaDizendoComoConfigurar() {
+        given(telegram.configurado()).willReturn(false);
+
+        assertThatThrownBy(() -> servico.disparar(DIA, List.of(), "alegre", true))
+                .isInstanceOf(FalhaDeEnvio.class)
+                .hasMessageContaining("TELEGRAM_TOKEN")
+                .hasMessageContaining("WHATSAPP_URL");
+        verify(telegram, never()).enviar(any());
+    }
+
+    private void ligarWhatsapp() {
+        given(whatsapp.configurado()).willReturn(true);
+        given(whatsapp.nome()).willReturn("whatsapp");
+        given(whatsapp.enviar(any())).willAnswer(inv -> {
+            List<Peca> pecas = inv.getArgument(0);
+            return pecas.stream().map(Peca::refeicao).filter(r -> r != null).toList();
+        });
     }
 
     private static List<Peca> argQueContem(String trecho) {

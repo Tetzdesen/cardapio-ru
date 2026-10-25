@@ -6,6 +6,7 @@ import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.config.EstadoProperties;
 import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
+import io.github.tetzdesen.cardapioru.notificacao.Canal;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -28,7 +29,10 @@ import org.springframework.stereotype.Component;
  * <p>O formato e o mesmo, de proposito: chave {@code AAAA-MM-DD|refeicao},
  * valor igual a assinatura, objeto ordenado por chave e indentado com dois
  * espacos. E o que torna a virada silenciosa -- o arquivo que ja esta no
- * repositorio continua valendo, e nenhuma refeicao volta a ser inedita.
+ * repositorio continua valendo, e nenhuma refeicao volta a ser inedita. Os
+ * outros canais acrescentam o nome ao fim da chave
+ * ({@code AAAA-MM-DD|refeicao|whatsapp}); o Telegram, que veio primeiro, fica
+ * sem sufixo.
  *
  * <p>Ler nunca falha: arquivo ausente ou ilegivel vira estado vazio, porque
  * arquivo que nao existe e o caso normal da primeira execucao. Gravar falha
@@ -41,6 +45,8 @@ public class ArquivoDeEstado {
     private static final Logger log = LoggerFactory.getLogger(ArquivoDeEstado.class);
 
     private static final Pattern DATA_ISO = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
+
+    private static final Pattern CANAL = Pattern.compile("[a-z]+");
 
     private final Path caminho;
     private final int retencaoDias;
@@ -63,14 +69,21 @@ public class ArquivoDeEstado {
         return caminho;
     }
 
-    /** A chave de uma entrada. A refeicao ja chega normalizada ("almoco"). */
+    /** A chave de uma entrada do Telegram. A refeicao ja chega normalizada ("almoco"). */
     public static String chave(LocalDate data, String refeicaoNormalizada) {
         return data + "|" + refeicaoNormalizada;
     }
 
+    /** A chave de uma entrada de um canal; a do Telegram continua sem sufixo. */
+    public static String chave(LocalDate data, String refeicaoNormalizada, String canal) {
+        String chave = chave(data, refeicaoNormalizada);
+        return Canal.TELEGRAM.equals(canal) ? chave : chave + "|" + canal;
+    }
+
     /**
      * Porte do {@code _chave_valida}: a data precisa ser uma data e a refeicao
-     * precisa ser uma das que o RU serve. Formato anterior e lixo caem aqui.
+     * precisa ser uma das que o RU serve, e o canal, se houver, um nome simples.
+     * Formato anterior e lixo caem aqui.
      */
     static boolean chaveValida(String chave) {
         if (chave == null) {
@@ -82,6 +95,14 @@ public class ArquivoDeEstado {
         }
         String dia = chave.substring(0, barra);
         String refeicao = chave.substring(barra + 1);
+        int outraBarra = refeicao.indexOf('|');
+        if (outraBarra >= 0) {
+            String canal = refeicao.substring(outraBarra + 1);
+            refeicao = refeicao.substring(0, outraBarra);
+            if (!CANAL.matcher(canal).matches()) {
+                return false;
+            }
+        }
         return DATA_ISO.matcher(dia).matches() && Vocabulario.REFEICOES_NORM.contains(refeicao);
     }
 

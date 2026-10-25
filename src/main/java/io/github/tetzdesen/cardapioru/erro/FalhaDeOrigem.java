@@ -14,8 +14,10 @@ public class FalhaDeOrigem extends RuntimeException {
         ORIGEM_INACESSIVEL,
         /** A cadeia de certificados nao fecha: 504, com instrucao de conserto. */
         CONFIANCA_TLS,
-        /** O Telegram recusou a mensagem: 502. */
-        TELEGRAM_RECUSOU
+        /** O Telegram recusou a mensagem, ou nenhum canal esta configurado: 502. */
+        TELEGRAM_RECUSOU,
+        /** O WAHA recusou a mensagem para o WhatsApp: 502. */
+        WHATSAPP_RECUSOU
     }
 
     private final Causa causa;

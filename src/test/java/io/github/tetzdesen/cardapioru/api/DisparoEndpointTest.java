@@ -11,9 +11,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.tetzdesen.cardapioru.Fixtures;
 import io.github.tetzdesen.cardapioru.coleta.ColetorDaUfes;
-import io.github.tetzdesen.cardapioru.estado.ServicoEstado;
 import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
+import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
+import io.github.tetzdesen.cardapioru.estado.ServicoEstado;
+import io.github.tetzdesen.cardapioru.notificacao.Canal;
 import io.github.tetzdesen.cardapioru.notificacao.ClienteTelegram;
+import io.github.tetzdesen.cardapioru.notificacao.FalhaDeEnvio;
 import io.github.tetzdesen.cardapioru.notificacao.Peca;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
 import java.util.List;
@@ -55,6 +58,8 @@ class DisparoEndpointTest {
         cardapio.limparCache();
         given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.COMPLETA));
         given(coletor.urlDe(any())).willReturn("https://restaurante.alegre.ufes.br/cardapio");
+        given(telegram.configurado()).willReturn(true);
+        given(telegram.nome()).willReturn(Canal.TELEGRAM);
         given(telegram.enviar(any())).willAnswer(inv -> {
             List<Peca> pecas = inv.getArgument(0);
             return pecas.stream().map(Peca::refeicao).filter(r -> r != null).toList();
@@ -69,9 +74,9 @@ class DisparoEndpointTest {
 
     @Test
     void nadaMudouResponde200ComEnviadasVaziaEOmitidasListadas() throws Exception {
-        given(estado.classificar(any(), any())).willAnswer(inv -> {
+        given(estado.classificar(any(), any(), any())).willAnswer(inv -> {
             List<io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao> blocos =
-                    inv.getArgument(1);
+                    inv.getArgument(2);
             return blocos.stream()
                     .map(b -> new ServicoEstado.Classificacao(b,
                             b.refeicao().toLowerCase(), "assinatura",
@@ -89,15 +94,16 @@ class DisparoEndpointTest {
 
     @Test
     void telegramRecusaResponde502ComACausaIdentificada() throws Exception {
-        given(estado.classificar(any(), any())).willAnswer(inv -> {
+        given(estado.classificar(any(), any(), any())).willAnswer(inv -> {
             List<io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao> blocos =
-                    inv.getArgument(1);
+                    inv.getArgument(2);
             return blocos.stream()
                     .map(b -> new ServicoEstado.Classificacao(b, b.refeicao().toLowerCase(),
                             "assinatura", ServicoEstado.Situacao.INEDITA))
                     .toList();
         });
-        willThrow(new ClienteTelegram.FalhaDeEnvio("Telegram respondeu 400: Bad Request",
+        willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
+                "Telegram respondeu 400: Bad Request",
                 List.of(), null)).given(telegram).enviar(any());
 
         mvc.perform(disparo("{\"data\":\"2026-09-11\",\"campus\":\"alegre\"}"))
@@ -107,16 +113,16 @@ class DisparoEndpointTest {
 
     @Test
     void estadoQueNaoPodeSerGravadoResponde503() throws Exception {
-        given(estado.classificar(any(), any())).willAnswer(inv -> {
+        given(estado.classificar(any(), any(), any())).willAnswer(inv -> {
             List<io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao> blocos =
-                    inv.getArgument(1);
+                    inv.getArgument(2);
             return blocos.stream()
                     .map(b -> new ServicoEstado.Classificacao(b, b.refeicao().toLowerCase(),
                             "assinatura", ServicoEstado.Situacao.INEDITA))
                     .toList();
         });
         willThrow(new EstadoIndisponivel("nao foi possivel gravar o estado", null))
-                .given(estado).registrar(any(), any());
+                .given(estado).registrar(any(), any(), any());
 
         // a mensagem ja chegou ao grupo: o 503 e o que deixa a inconsistencia
         // visivel a quem chamou, em vez de fazer o disparo seguinte ficar mudo

@@ -15,8 +15,8 @@ public final class Saida {
     public static final int OK = 0;
     /** Argumento ou parametro invalido. */
     public static final int USO = 2;
-    /** O Telegram recusou a mensagem. */
-    public static final int TELEGRAM = 3;
+    /** Um canal -- Telegram ou WhatsApp -- recusou a mensagem. */
+    public static final int ENVIO = 3;
     /** A pagina baixou mas nao e reconhecivel como cardapio. */
     public static final int ESTRUTURA = 4;
     /** O site da UFES nao respondeu depois de esgotadas as tentativas. */

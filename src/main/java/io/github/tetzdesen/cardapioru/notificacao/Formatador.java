@@ -75,6 +75,19 @@ public final class Formatador {
         return desescapar(textoHtml.replaceAll("<[^>]+>", ""));
     }
 
+    /**
+     * O HTML das pecas na marcacao do WhatsApp: negrito e italico viram
+     * {@code *} e {@code _}, e o link vira o endereco puro, porque o WhatsApp nao
+     * esconde URL atras de texto.
+     */
+    public static String paraWhatsapp(String textoHtml) {
+        String convertido = textoHtml
+                .replaceAll("<a href=\"([^\"]*)\">([^<]*)</a>", "$2: $1")
+                .replaceAll("</?b>", "*")
+                .replaceAll("</?i>", "_");
+        return semMarcacao(convertido);
+    }
+
     private static String desescapar(String texto) {
         return texto.replace("&lt;", "<")
                 .replace("&gt;", ">")

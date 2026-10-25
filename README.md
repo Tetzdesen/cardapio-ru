@@ -1,10 +1,29 @@
 # Cardápio do RU — UFES Alegre
 
 Lê `https://restaurante.alegre.ufes.br/cardapio` e manda o aviso do dia num chat do
-Telegram. Roda como API no [Render](https://render.com), plano grátis, com o agendador
-dentro da própria aplicação. **Sem banco, sem agendador externo.**
+Telegram e, se configurado, num grupo de WhatsApp. Roda como API no
+[Render](https://render.com), plano grátis, com o agendador dentro da própria aplicação. **Sem banco, sem agendador externo.**
 
 Spring Boot 3.5 · Java 21.
+
+## Canais
+
+Cada destino do aviso é um `Canal` (padrão Strategy): o `ClienteTelegram` e o
+`ClienteWhatsapp` implementam a mesma interface, e o `DisparoTransacional` aplica a cada
+canal configurado a mesma regra — decide o que é novidade, envia, grava — sem saber qual
+é qual. Canal sem configuração fica de fora; sem nenhum, o envio falha com código `3`.
+
+| canal | liga com | marcação |
+|---|---|---|
+| Telegram | `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | HTML |
+| WhatsApp | `WHATSAPP_URL`, `WHATSAPP_API_KEY`, `WHATSAPP_CHAT_ID` | `*negrito*`, convertida na saída |
+
+O WhatsApp passa pelo [WAHA](whatsapp/README.md), um servidor que você hospeda fora do
+Render. Os canais falham sozinhos: o WhatsApp fora do ar não impede o Telegram de
+receber, e o disparo seguinte manda só ao canal que ficou para trás.
+
+Um canal novo é uma classe que implementa `Canal` e vira `@Component`; o disparo o
+encontra sozinho.
 
 ## Como funciona
 
@@ -20,7 +39,7 @@ java -jar target/cardapio-ru-*.jar --enviar --refeicoes almoco,jantar --vazio-si
 
 | argumento | padrão | o que faz |
 |---|---|---|
-| `--enviar` | — | manda ao Telegram e grava o estado |
+| `--enviar` | — | manda aos canais configurados e grava o estado |
 | `--print` | — | só imprime o cardápio formatado; não envia nem grava |
 | `--data AAAA-MM-DD` | hoje (fuso de Brasília) | a data do cardápio |
 | `--refeicoes` | `almoco,jantar` | lista separada por vírgula, ou `todas` |
@@ -40,7 +59,7 @@ vez de adivinhar se você queria falar com o grupo. As duas grafias funcionam
 |---|---|
 | `0` | sucesso, **inclusive** "nada a enviar" e "dia sem cardápio publicado" |
 | `2` | erro de uso: argumento faltando, data mal formada, refeição desconhecida |
-| `3` | o Telegram recusou a mensagem |
+| `3` | um canal recusou a mensagem (Telegram ou WhatsApp), ou nenhum está configurado |
 | `4` | página irreconhecível — o site provavelmente mudou |
 | `5` | site da UFES inacessível depois de esgotadas as tentativas |
 | `6` | o estado não pôde ser gravado depois de um envio confirmado |
@@ -64,9 +83,13 @@ Uma linha por `(data, refeição)`, com a assinatura do conteúdo anunciado:
 ```json
 {
   "2026-09-15|almoco": "3697e402437c133a",
-  "2026-09-15|jantar": "459106b701d9f528"
+  "2026-09-15|jantar": "459106b701d9f528",
+  "2026-09-15|jantar|whatsapp": "459106b701d9f528"
 }
 ```
+
+Cada canal tem a sua entrada. A do Telegram, que veio primeiro, fica sem sufixo; as dos
+outros levam o nome do canal no fim.
 
 É o mesmo formato que o `ru_bot.py` gravava, byte a byte — por isso o arquivo que já
 estava no repositório continua valendo e a virada não reanunciou nada. A chave **não**
@@ -77,7 +100,7 @@ Entradas mais velhas que 30 dias são podadas na gravação. Entrada ilegível �
 sem erro, e a refeição volta a contar como inédita. **Arquivo ausente é o caso normal da
 primeira execução**, não é falha.
 
-O arquivo só é escrito depois de o Telegram confirmar, e só com as refeições confirmadas.
+O arquivo só é escrito depois de o canal confirmar, e só com as refeições confirmadas.
 Se o envio falhar no meio, o que já chegou ao grupo fica registrado — reenviar amanhã uma
 refeição que já chegou é pior do que deixar a falha visível no código de saída.
 
@@ -140,7 +163,9 @@ Nenhuma variável é obrigatória para `--print`. Para `--enviar`, defina `TELEG
 
 | variável | para quê |
 |---|---|
-| `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | o envio |
+| `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | o envio pelo Telegram |
+| `WHATSAPP_URL`, `WHATSAPP_API_KEY`, `WHATSAPP_CHAT_ID` | o envio pelo WhatsApp (opcional) |
+| `WHATSAPP_SESSAO` | sessão do WAHA (padrão `default`) |
 | `ESTADO` | caminho do estado (padrão `estado/ultimo-envio.json`) |
 | `API_TOKEN` | segredo que o `POST /notificacoes` exige, se você subir a API |
 | `PORT` | porta HTTP da API (padrão `8080`) |
@@ -176,8 +201,9 @@ curl -X POST http://localhost:8080/api/v1/notificacoes \
 ```
 
 Status: `200` cardápio entregue (inclusive vazio) ou disparo sem novidade; `400` parâmetro
-inválido; `401` sem token ou token errado; `502` página irreconhecível ou Telegram
-recusou; `503` o estado não pôde ser gravado; `504` site inacessível.
+inválido; `401` sem token ou token errado; `502` página irreconhecível ou canal
+recusou (`causa` diz qual: `TELEGRAM_RECUSOU`, `WHATSAPP_RECUSOU`); `503` o estado não
+pôde ser gravado; `504` site inacessível.
 
 Disparos simultâneos no mesmo processo — o agendador e uma chamada HTTP — esperam um pelo
 outro. Sem `API_TOKEN` definido, como no `render.yaml`, o `POST` recusa tudo.

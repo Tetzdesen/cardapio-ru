@@ -18,6 +18,7 @@ import io.github.tetzdesen.cardapioru.Fixtures;
 import io.github.tetzdesen.cardapioru.coleta.ColetorDaUfes;
 import io.github.tetzdesen.cardapioru.config.FiltroDeToken;
 import io.github.tetzdesen.cardapioru.estado.ArquivoDeEstado;
+import io.github.tetzdesen.cardapioru.notificacao.Canal;
 import io.github.tetzdesen.cardapioru.notificacao.ClienteTelegram;
 import io.github.tetzdesen.cardapioru.notificacao.Peca;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
@@ -61,6 +62,8 @@ class SegurancaTest {
         cardapio.limparCache();
         given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.COMPLETA));
         given(coletor.urlDe(any())).willReturn("https://restaurante.alegre.ufes.br/cardapio");
+        given(telegram.configurado()).willReturn(true);
+        given(telegram.nome()).willReturn(Canal.TELEGRAM);
         given(telegram.enviar(any())).willAnswer(inv -> {
             List<Peca> pecas = inv.getArgument(0);
             return pecas.stream().map(Peca::refeicao).filter(r -> r != null).toList();

@@ -15,8 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Decide, refeicao a refeicao, o que e novidade. Porte da logica de estado do
- * ru_bot.py, sobre o mesmo arquivo JSON que ele gravava.
+ * Decide, refeicao a refeicao e canal a canal, o que e novidade. Porte da logica
+ * de estado do ru_bot.py, sobre o mesmo arquivo JSON que ele gravava.
+ *
+ * <p>Cada canal tem a sua entrada: uma refeicao que chegou ao Telegram e falhou
+ * no WhatsApp volta so para o WhatsApp no disparo seguinte.
  */
 @Service
 public class ServicoEstado {
@@ -47,28 +50,30 @@ public class ServicoEstado {
     }
 
     /**
-     * Le o estado da data e classifica cada bloco.
+     * Le o estado da data no canal e classifica cada bloco.
      *
      * <p>Entrada que o sistema nao consegue interpretar e descartada em vez de
      * provocar erro -- a refeicao correspondente volta a ser tratada como
      * inedita. Arquivo ausente ou ilegivel vale como estado vazio: e o caso
      * normal da primeira execucao, e nao ha o que duplicar no grupo.
      */
-    public List<Classificacao> classificar(LocalDate data, List<BlocoRefeicao> blocos) {
+    public List<Classificacao> classificar(LocalDate data, String canal,
+            List<BlocoRefeicao> blocos) {
         Map<String, String> conhecidas = arquivo.ler();
 
         List<Classificacao> classificadas = new ArrayList<>();
         for (BlocoRefeicao bloco : blocos) {
             String refeicao = normalizar(bloco.refeicao());
             String assinatura = Formatador.assinatura(bloco);
-            String anterior = conhecidas.get(ArquivoDeEstado.chave(data, refeicao));
+            String anterior = conhecidas.get(ArquivoDeEstado.chave(data, refeicao, canal));
 
             Situacao situacao;
             if (anterior == null) {
                 situacao = Situacao.INEDITA;
             } else if (anterior.equals(assinatura)) {
                 situacao = Situacao.INALTERADA;
-                log.debug("{}|{} sem mudanca desde o ultimo envio", data, refeicao);
+                log.debug("{}|{} sem mudanca desde o ultimo envio ao {}", data, refeicao,
+                        canal);
             } else {
                 situacao = Situacao.MUDOU;
             }
@@ -78,19 +83,20 @@ public class ServicoEstado {
     }
 
     /**
-     * Grava as refeicoes que o Telegram confirmou, e so elas. A poda por retencao
+     * Grava as refeicoes que o canal confirmou, e so elas. A poda por retencao
      * vai junto -- o arquivo so e reescrito quando algo foi enviado, entao nao ha
      * gravacao sem novidade.
      *
      * @throws EstadoIndisponivel se o arquivo nao puder ser gravado
      */
-    public void registrar(LocalDate data, Collection<Classificacao> confirmadas) {
+    public void registrar(LocalDate data, String canal, Collection<Classificacao> confirmadas) {
         if (confirmadas.isEmpty()) {
             return;
         }
         Map<String, String> estado = arquivo.ler();
         for (Classificacao c : confirmadas) {
-            estado.put(ArquivoDeEstado.chave(data, c.refeicaoNormalizada()), c.assinatura());
+            estado.put(ArquivoDeEstado.chave(data, c.refeicaoNormalizada(), canal),
+                    c.assinatura());
         }
         arquivo.gravar(estado);
         log.info("estado: {} entrada(s) gravada(s) em {}", confirmadas.size(), arquivo.caminho());

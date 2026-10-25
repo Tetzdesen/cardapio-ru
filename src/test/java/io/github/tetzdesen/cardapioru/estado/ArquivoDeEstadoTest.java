@@ -93,6 +93,29 @@ class ArquivoDeEstadoTest {
     }
 
     @Test
+    void chaveDoTelegramFicaSemSufixoEADosOutrosCanaisLevaONome() {
+        LocalDate dia = LocalDate.of(2026, 9, 16);
+
+        assertThat(ArquivoDeEstado.chave(dia, "almoco", "telegram")).isEqualTo("2026-09-16|almoco");
+        assertThat(ArquivoDeEstado.chave(dia, "almoco", "whatsapp"))
+                .isEqualTo("2026-09-16|almoco|whatsapp");
+    }
+
+    @Test
+    void entradaDeOutroCanalELidaEGravada() {
+        ArquivoDeEstado arquivo = em(pasta.resolve("estado.json"));
+        String hoje = LocalDate.now(ZoneOffset.ofHours(-3)).toString();
+        Map<String, String> estado = new LinkedHashMap<>();
+        estado.put(hoje + "|almoco", "aaaa");
+        estado.put(hoje + "|almoco|whatsapp", "bbbb");
+        estado.put(hoje + "|almoco|Whats App", "cccc");
+
+        arquivo.gravar(estado);
+
+        assertThat(arquivo.ler()).containsOnlyKeys(hoje + "|almoco", hoje + "|almoco|whatsapp");
+    }
+
+    @Test
     void gravaNoMesmoFormatoDoRuBot() throws IOException {
         Path caminho = pasta.resolve("estado.json");
         Map<String, String> estado = new LinkedHashMap<>();

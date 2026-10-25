@@ -107,7 +107,7 @@ class ClienteTelegramTest {
         String url = subir(n -> new Resposta(401, "{\"description\":\"Unauthorized\"}", null));
 
         assertThatThrownBy(() -> cliente(url, 4000).enviar(List.of(new Peca("almoco", "t"))))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class)
+                .isInstanceOf(FalhaDeEnvio.class)
                 .hasMessageContaining("401");
 
         assertThat(chamadas).hasValue(1);
@@ -135,7 +135,7 @@ class ClienteTelegramTest {
         assertThatThrownBy(() -> cliente(url, 10).enviar(List.of(
                 new Peca("almoco", "primeira parte"),
                 new Peca("jantar", "segunda parte"))))
-                .isInstanceOfSatisfying(ClienteTelegram.FalhaDeEnvio.class, e ->
+                .isInstanceOfSatisfying(FalhaDeEnvio.class, e ->
                         assertThat(e.confirmadas()).containsExactly("almoco"));
     }
 
@@ -143,7 +143,7 @@ class ClienteTelegramTest {
     void agrupaSemPartirUmaPecaAoMeio() {
         ClienteTelegram c = cliente("http://exemplo", 30);
 
-        List<ClienteTelegram.Mensagem> mensagens = c.agrupar(List.of(
+        List<Agrupador.Mensagem> mensagens = c.agrupar(List.of(
                 new Peca("almoco", "a".repeat(20)),
                 new Peca("jantar", "b".repeat(20))));
 
@@ -156,7 +156,7 @@ class ClienteTelegramTest {
     void pecasPequenasViajamJuntas() {
         ClienteTelegram c = cliente("http://exemplo", 4000);
 
-        List<ClienteTelegram.Mensagem> mensagens = c.agrupar(List.of(
+        List<Agrupador.Mensagem> mensagens = c.agrupar(List.of(
                 new Peca("almoco", "almoço"), new Peca("jantar", "jantar"),
                 Peca.avulsa("<a href=\"x\">ver no site</a>")));
 
@@ -173,7 +173,7 @@ class ClienteTelegramTest {
                         Duration.ofSeconds(1), Duration.ofSeconds(1), Tempo.real()));
 
         assertThatThrownBy(() -> c.enviar(List.of(new Peca("almoco", "t"))))
-                .isInstanceOf(ClienteTelegram.FalhaDeEnvio.class)
+                .isInstanceOf(FalhaDeEnvio.class)
                 .hasMessageContaining("TELEGRAM_TOKEN");
     }
 }

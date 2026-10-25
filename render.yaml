@@ -17,3 +17,10 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      # opcionais: sem eles o aviso vai so para o Telegram (whatsapp/README.md)
+      - key: WHATSAPP_URL
+        sync: false
+      - key: WHATSAPP_API_KEY
+        sync: false
+      - key: WHATSAPP_CHAT_ID
+        sync: false

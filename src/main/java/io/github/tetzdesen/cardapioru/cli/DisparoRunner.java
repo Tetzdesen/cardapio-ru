@@ -73,7 +73,7 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
         }
 
         if (opcoes.enviar() == opcoes.imprimir()) {
-            log.error("informe --enviar (manda ao Telegram) ou --print (so imprime), "
+            log.error("informe --enviar (manda aos canais) ou --print (so imprime), "
                     + "e nao os dois");
             return Saida.USO;
         }
@@ -97,7 +97,7 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
         } catch (FalhaDeOrigem e) {
             log.error("{}: {}", e.causa(), e.getMessage());
             return switch (e.causa()) {
-                case TELEGRAM_RECUSOU -> Saida.TELEGRAM;
+                case TELEGRAM_RECUSOU, WHATSAPP_RECUSOU -> Saida.ENVIO;
                 case ESTRUTURA_NAO_RECONHECIDA -> Saida.ESTRUTURA;
                 case ORIGEM_INACESSIVEL, CONFIANCA_TLS -> Saida.ORIGEM;
             };

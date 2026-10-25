@@ -75,4 +75,14 @@ class FormatadorTest {
         assertThat(Formatador.escapar("Pão & Cia <b>\"x\" 'y'</b>"))
                 .isEqualTo("Pão &amp; Cia &lt;b&gt;&quot;x&quot; &#x27;y&#x27;&lt;/b&gt;");
     }
+
+    @Test
+    void paraWhatsappTrocaOHtmlPelaMarcacaoDele() {
+        String html = "☕ <b>Desjejum</b> — 16/09\n<i>Alegre</i>\n• Pão &amp; manteiga\n\n"
+                + Formatador.linkDaOrigem("https://restaurante.alegre.ufes.br/cardapio");
+
+        assertThat(Formatador.paraWhatsapp(html)).isEqualTo(
+                "☕ *Desjejum* — 16/09\n_Alegre_\n• Pão & manteiga\n\n"
+                        + "ver no site: https://restaurante.alegre.ufes.br/cardapio");
+    }
 }

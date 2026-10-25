@@ -56,6 +56,16 @@ telegram:
   timeout: 30s
   limite-mensagem: 4000
 
+# O WAHA que liga o bot a um grupo de WhatsApp (ver whatsapp/README.md). Sem os
+# tres primeiros, o canal fica de fora e so o Telegram recebe.
+whatsapp:
+  url-base: ${WHATSAPP_URL:}
+  api-key: ${WHATSAPP_API_KEY:}
+  chat-id: ${WHATSAPP_CHAT_ID:}
+  sessao: ${WHATSAPP_SESSAO:default}
+  timeout: 30s
+  limite-mensagem: 4000
+
 api:
   token: ${API_TOKEN:}
 

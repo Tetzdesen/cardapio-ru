@@ -12,7 +12,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,26 +19,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/** Porte do {@code enviar_telegram} e do {@code _agrupar} do ru_bot.py. */
+/** Porte do {@code enviar_telegram} do ru_bot.py: o canal original do aviso. */
 @Component
-public class ClienteTelegram {
-
-    /** Falha de envio, com as refeicoes que o Telegram chegou a confirmar. */
-    public static class FalhaDeEnvio extends FalhaDeOrigem {
-
-        private final transient List<String> confirmadas;
-
-        public FalhaDeEnvio(String mensagem, List<String> confirmadas, Throwable causa) {
-            super(Causa.TELEGRAM_RECUSOU, mensagem, causa);
-            this.confirmadas = List.copyOf(confirmadas);
-        }
-
-        public List<String> confirmadas() {
-            return confirmadas;
-        }
-    }
+@Order(1)
+public class ClienteTelegram implements Canal {
 
     /** O Telegram cai e volta, e limita requisicoes. 4xx fora do 429 e configuracao. */
     static final Set<Integer> STATUS_REPETIVEL = Set.of(429, 500, 502, 503, 504);
@@ -67,61 +53,49 @@ public class ClienteTelegram {
         this.retentador = retentador;
     }
 
-    /**
-     * Junta pecas em mensagens de ate {@code limiteMensagem} caracteres, sem
-     * partir uma peca ao meio -- e o que permite saber, na falha, quais refeicoes
-     * ja chegaram.
-     */
-    record Mensagem(List<String> refeicoes, String texto) {
+    @Override
+    public String nome() {
+        return TELEGRAM;
     }
 
-    List<Mensagem> agrupar(List<Peca> pecas) {
-        List<Mensagem> mensagens = new ArrayList<>();
-        List<String> refeicoes = new ArrayList<>();
-        String atual = "";
-
-        for (Peca peca : pecas) {
-            String candidato = atual.isEmpty() ? peca.texto() : atual + "\n\n" + peca.texto();
-            if (!atual.isEmpty() && candidato.length() > props.limiteMensagem()) {
-                mensagens.add(new Mensagem(List.copyOf(refeicoes), atual));
-                refeicoes = new ArrayList<>();
-                atual = peca.texto();
-            } else {
-                atual = candidato;
-            }
-            if (peca.refeicao() != null) {
-                refeicoes.add(peca.refeicao());
-            }
-        }
-        if (!atual.isBlank()) {
-            mensagens.add(new Mensagem(List.copyOf(refeicoes), atual));
-        }
-        return mensagens;
+    @Override
+    public boolean configurado() {
+        return props.configurado();
     }
 
-    /** Envia e devolve as refeicoes que o Telegram confirmou ter recebido. */
+    List<Agrupador.Mensagem> agrupar(List<Peca> pecas) {
+        return Agrupador.agrupar(pecas, props.limiteMensagem());
+    }
+
+    @Override
     public List<String> enviar(List<Peca> pecas) {
         if (!props.configurado()) {
-            throw new FalhaDeEnvio("TELEGRAM_TOKEN e TELEGRAM_CHAT_ID nao estao definidos",
-                    List.of(), null);
+            throw falha("TELEGRAM_TOKEN e TELEGRAM_CHAT_ID nao estao definidos", List.of(),
+                    null);
         }
 
         Set<String> confirmadas = new LinkedHashSet<>();
-        for (Mensagem mensagem : agrupar(pecas)) {
+        for (Agrupador.Mensagem mensagem : agrupar(pecas)) {
             HttpResponse<String> resposta;
             try {
                 resposta = postar(mensagem.texto());
             } catch (FalhaDeOrigem e) {
-                throw new FalhaDeEnvio("erro de rede ao falar com o Telegram: " + e.getMessage(),
+                throw falha("erro de rede ao falar com o Telegram: " + e.getMessage(),
                         List.copyOf(confirmadas), e);
             }
             if (resposta.statusCode() >= 300) {
-                throw new FalhaDeEnvio("Telegram respondeu " + resposta.statusCode() + ": "
+                throw falha("Telegram respondeu " + resposta.statusCode() + ": "
                         + resposta.body(), List.copyOf(confirmadas), null);
             }
             confirmadas.addAll(mensagem.refeicoes());
         }
         return List.copyOf(confirmadas);
+    }
+
+    private static FalhaDeEnvio falha(String mensagem, List<String> confirmadas,
+            Throwable origem) {
+        return new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU, mensagem, confirmadas,
+                origem);
     }
 
     private HttpResponse<String> postar(String texto) {

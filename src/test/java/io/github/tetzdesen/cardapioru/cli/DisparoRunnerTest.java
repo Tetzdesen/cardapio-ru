@@ -107,7 +107,7 @@ class DisparoRunnerTest {
         willThrow(new FalhaDeOrigem(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU, "400"))
                 .given(notificacao).disparar(any(), any(), any(), anyBoolean());
 
-        assertThat(runner.executar(new String[] {"--enviar"})).isEqualTo(Saida.TELEGRAM);
+        assertThat(runner.executar(new String[] {"--enviar"})).isEqualTo(Saida.ENVIO);
     }
 
     @Test

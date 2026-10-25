@@ -43,7 +43,8 @@ public class TratadorDeErros {
     @ExceptionHandler(FalhaDeOrigem.class)
     public ResponseEntity<ErroResposta> falhaDeOrigem(FalhaDeOrigem e) {
         HttpStatus status = switch (e.causa()) {
-            case ESTRUTURA_NAO_RECONHECIDA, TELEGRAM_RECUSOU -> HttpStatus.BAD_GATEWAY;
+            case ESTRUTURA_NAO_RECONHECIDA, TELEGRAM_RECUSOU, WHATSAPP_RECUSOU ->
+                    HttpStatus.BAD_GATEWAY;
             case ORIGEM_INACESSIVEL, CONFIANCA_TLS -> HttpStatus.GATEWAY_TIMEOUT;
         };
         log.error("{} -> {}", e.causa(), status.value(), e);
