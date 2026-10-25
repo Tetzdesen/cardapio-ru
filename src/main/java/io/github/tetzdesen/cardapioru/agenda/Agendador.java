@@ -28,9 +28,13 @@ import org.springframework.stereotype.Component;
  * mesma pela URL publica -- precisa ser a publica, e nao localhost, porque so o
  * que passa pela borda do Render conta como trafego.
  *
- * <p>O estado fica no disco do conteiner e some quando ele reinicia. Reinicio entre
- * o anuncio da manha e a reconferencia faz almoco e jantar chegarem de novo; e o
- * preco de nao ter onde guardar o estado.
+ * <p>Cada refeicao sai numa mensagem propria, pouco antes de o RU abrir para ela:
+ * quem le o aviso do jantar de manha ja esqueceu quando chega a hora. Pedir uma
+ * refeicao por disparo e o que separa as mensagens -- o cardapio do dia ainda e
+ * consultado inteiro, mas so a refeicao da vez vai para o grupo.
+ *
+ * <p>O estado fica no disco do conteiner e some quando ele reinicia. Como cada
+ * refeicao so e pedida uma vez por dia, um reinicio nao faz nada chegar de novo.
  */
 @Component
 @Profile("web")
@@ -59,16 +63,21 @@ public class Agendador {
         }
     }
 
-    /** O dia inteiro, cedo, antes do desjejum. */
-    @Scheduled(cron = "${agenda.manha}", zone = "${agenda.fuso}")
-    public void manha() {
-        disparar("manha", "todas");
+    /** "cafe da manha" cobre os dois nomes que o site usa: Desjejum e Cafe da Manha. */
+    @Scheduled(cron = "${agenda.desjejum}", zone = "${agenda.fuso}")
+    public void desjejum() {
+        disparar("desjejum", "cafe da manha");
     }
 
-    /** O site costuma corrigir o cardapio de manha: so fala se almoco ou jantar mudou. */
-    @Scheduled(cron = "${agenda.reconferencia}", zone = "${agenda.fuso}")
-    public void reconferencia() {
-        disparar("reconferencia", "almoco,jantar");
+    /** Tarde o bastante para pegar as correcoes que o site costuma fazer de manha. */
+    @Scheduled(cron = "${agenda.almoco}", zone = "${agenda.fuso}")
+    public void almoco() {
+        disparar("almoco", "almoco");
+    }
+
+    @Scheduled(cron = "${agenda.jantar}", zone = "${agenda.fuso}")
+    public void jantar() {
+        disparar("jantar", "jantar");
     }
 
     @Scheduled(fixedDelayString = "${agenda.manter-acordado}",

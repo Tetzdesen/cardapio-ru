@@ -70,8 +70,8 @@ Uma linha por `(data, refeição)`, com a assinatura do conteúdo anunciado:
 
 É o mesmo formato que o `ru_bot.py` gravava, byte a byte — por isso o arquivo que já
 estava no repositório continua valendo e a virada não reanunciou nada. A chave **não**
-depende de quais refeições o disparo pediu: é isso que faz o anúncio das 05h40 e a
-reconferência das 09h30 reconhecerem o que têm em comum.
+depende de quais refeições o disparo pediu: é isso que faz disparos que pedem refeições
+diferentes reconhecerem o que têm em comum.
 
 Entradas mais velhas que 30 dias são podadas na gravação. Entrada ilegível é descartada
 sem erro, e a refeição volta a contar como inédita. **Arquivo ausente é o caso normal da
@@ -97,8 +97,11 @@ O anúncio sai de segunda a sexta, no fuso `America/Sao_Paulo` (`agenda.*` em
 
 | horário | o que faz |
 |---|---|
-| **05h40** | anuncia o dia inteiro — desjejum, almoço e jantar |
-| **09h30** | reconfere almoço e jantar, e só fala se algo mudou |
+| **05h40** | anuncia o desjejum |
+| **10h30** | anuncia o almoço |
+| **16h30** | anuncia o jantar |
+
+Cada refeição chega numa mensagem própria, um pouco antes de o RU abrir para ela.
 
 Só liga com `AGENDA_ATIVA=true`, que o `render.yaml` define: a API local e os testes não
 falam com o grupo sozinhos.
@@ -114,9 +117,9 @@ nas 750 horas grátis.
 ### O que se perde por ser grátis
 
 O estado fica no disco do contêiner e **some quando ele reinicia** (deploy, manutenção do
-Render). Reinício entre 05h40 e 09h30 faz almoço e jantar chegarem de novo às 09h30. Não
-há reenvio de falha: se o site da UFES estiver fora às 05h40, o erro fica no log do
-Render e o próximo envio é o das 09h30.
+Render). Como cada refeição só é pedida uma vez por dia, isso não faz nada chegar de novo.
+Não há reenvio de falha: se o site da UFES estiver fora na hora de uma refeição, o erro
+fica no log do Render e aquela refeição não é anunciada.
 
 ### O workflow do Actions
 

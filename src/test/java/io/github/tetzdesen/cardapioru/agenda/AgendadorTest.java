@@ -35,19 +35,24 @@ class AgendadorTest {
     }
 
     @Test
-    void manhaPedeODiaInteiroDeAlegreEmSilencioSeVazio() {
-        agendador.manha();
+    void desjejumPedeOsDoisNomesDoCafeDeAlegreEmSilencioSeVazio() {
+        agendador.desjejum();
 
-        // lista vazia e "todas" para o filtro
-        verify(notificacao).disparar(HOJE, List.of(), "alegre", true);
+        verify(notificacao).disparar(HOJE, List.of("Desjejum", "Café da Manhã"), "alegre", true);
     }
 
     @Test
-    void reconferenciaPedeSoAlmocoEJantar() {
-        agendador.reconferencia();
+    void almocoPedeSoOAlmoco() {
+        agendador.almoco();
 
-        verify(notificacao).disparar(eq(HOJE), eq(List.of("almoco", "jantar")), eq("alegre"),
-                eq(true));
+        verify(notificacao).disparar(eq(HOJE), eq(List.of("almoco")), eq("alegre"), eq(true));
+    }
+
+    @Test
+    void jantarPedeSoOJantar() {
+        agendador.jantar();
+
+        verify(notificacao).disparar(eq(HOJE), eq(List.of("jantar")), eq("alegre"), eq(true));
     }
 
     @Test
@@ -56,7 +61,7 @@ class AgendadorTest {
         given(notificacao.disparar(any(), any(), anyString(), anyBoolean())).willThrow(
                 new FalhaDeOrigem(FalhaDeOrigem.Causa.ORIGEM_INACESSIVEL, "site fora"));
 
-        assertThatCode(agendador::manha).doesNotThrowAnyException();
+        assertThatCode(agendador::desjejum).doesNotThrowAnyException();
     }
 
     @Test

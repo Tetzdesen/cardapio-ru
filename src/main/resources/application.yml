@@ -64,8 +64,10 @@ api:
 agenda:
   ativa: ${AGENDA_ATIVA:false}
   fuso: America/Sao_Paulo
-  manha: "0 40 5 * * MON-FRI"
-  reconferencia: "0 30 9 * * MON-FRI"
+  # Uma mensagem por refeicao, um pouco antes de o RU abrir para ela.
+  desjejum: "0 40 5 * * MON-FRI"
+  almoco: "0 30 10 * * MON-FRI"
+  jantar: "0 30 16 * * MON-FRI"
   # O Render injeta RENDER_EXTERNAL_URL. Abaixo dos 15 minutos que ele espera
   # antes de desligar o servico por inatividade.
   url-publica: ${RENDER_EXTERNAL_URL:}
