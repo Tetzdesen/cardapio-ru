@@ -38,7 +38,11 @@ public final class Formatador {
                 .replace("'", "&#x27;");
     }
 
-    /** Texto de uma refeicao isolada -- e o que entra na assinatura do estado. */
+    /**
+     * Texto de uma refeicao isolada -- e o que entra na assinatura do estado. Nao
+     * e mais o que vai ao grupo (ver {@link #mensagem}), mas fica como o porte
+     * literal do Python: mudar um caractere aqui reenvia todas as refeicoes.
+     */
     public static String bloco(BlocoRefeicao bloco) {
         String icone = Vocabulario.emojiDe(bloco.refeicao());
         List<String> partes = new ArrayList<>();
@@ -59,12 +63,42 @@ public final class Formatador {
         return String.join("\n", partes);
     }
 
+    /**
+     * O que vai ao grupo: o mesmo conteudo do {@link #bloco}, com icone em cada
+     * secao e no sabor dos sucos e frutas. Fica fora da assinatura de proposito
+     * -- mexer no visual nao e o cardapio ter mudado, e nao pode disparar o aviso
+     * de mudanca nem reenviar o dia.
+     */
+    public static String mensagem(BlocoRefeicao bloco) {
+        String icone = Vocabulario.emojiDe(bloco.refeicao());
+        List<String> partes = new ArrayList<>();
+        partes.add(icone + " <b>" + escapar(bloco.refeicao()) + "</b> — "
+                + escapar(bloco.data()) + "\n📍 <i>" + escapar(bloco.campus()) + "</i>");
+
+        for (Secao secao : bloco.secoes()) {
+            if (secao.itens().isEmpty()) {
+                continue;
+            }
+            if (!secao.rotulo().isEmpty()) {
+                String rotulo = "<b>" + escapar(secao.rotulo()) + "</b>";
+                partes.add("\n" + Vocabulario.emojiDaSecao(secao.rotulo())
+                        .map(e -> e + " " + rotulo)
+                        .orElse(rotulo));
+            }
+            for (String item : secao.itens()) {
+                String marcador = Vocabulario.emojiDoItem(secao.rotulo(), item).orElse("•");
+                partes.add(marcador + " " + escapar(item));
+            }
+        }
+        return String.join("\n", partes);
+    }
+
     public static String semCardapio() {
         return "🍽️ <b>RU UFES Alegre</b>\n\nSem cardápio publicado para hoje.";
     }
 
     public static String linkDaOrigem(String url) {
-        return "<a href=\"" + url + "\">ver no site</a>";
+        return "🔗 <a href=\"" + url + "\">ver no site</a>";
     }
 
     /**

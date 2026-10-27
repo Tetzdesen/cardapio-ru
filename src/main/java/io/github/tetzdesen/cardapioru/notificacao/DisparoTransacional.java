@@ -181,7 +181,7 @@ public class DisparoTransacional {
             pecas.add(Peca.avulsa(Formatador.AVISO_MUDANCA));
         }
         for (Classificacao c : blocos) {
-            pecas.add(new Peca(c.refeicaoNormalizada(), Formatador.bloco(c.bloco())));
+            pecas.add(new Peca(c.refeicaoNormalizada(), Formatador.mensagem(c.bloco())));
         }
         pecas.add(Peca.avulsa(Formatador.linkDaOrigem(origem)));
         return List.copyOf(pecas);

@@ -30,6 +30,58 @@ public final class Vocabulario {
 
     public static final String EMOJI_PADRAO = "🍽️";
 
+    /** Um icone por rotulo de secao, pela forma normalizada do rotulo. */
+    public static final Map<String, String> EMOJI_SECAO = Map.ofEntries(
+            Map.entry("entrada", "🥗"),
+            Map.entry("salada", "🥗"),
+            Map.entry("prato proteico", "🍗"),
+            Map.entry("prato principal", "🍛"),
+            Map.entry("opcao", "🌱"),
+            Map.entry("acompanhamento", "🍚"),
+            Map.entry("guarnicao", "🥔"),
+            Map.entry("sobremesa", "🍮"),
+            Map.entry("suco", "🧃"),
+            Map.entry("refresco", "🧃"),
+            Map.entry("pao", "🥖"),
+            Map.entry("complemento", "🧈"),
+            Map.entry("bebida", "🥤"),
+            Map.entry("fruta", "🍎"));
+
+    /**
+     * Sabores e bebidas que ganham icone proprio no lugar do marcador. So vale
+     * nas secoes de {@link #SECOES_COM_SABOR}: em "Frango com Laranja" a laranja
+     * nao e o que importa.
+     */
+    private static final Map<String, String> EMOJI_SABOR = Map.ofEntries(
+            Map.entry("morango", "🍓"),
+            Map.entry("laranja", "🍊"),
+            Map.entry("tangerina", "🍊"),
+            Map.entry("mexerica", "🍊"),
+            Map.entry("limao", "🍋"),
+            Map.entry("abacaxi", "🍍"),
+            Map.entry("manga", "🥭"),
+            Map.entry("uva", "🍇"),
+            Map.entry("melancia", "🍉"),
+            Map.entry("melao", "🍈"),
+            Map.entry("banana", "🍌"),
+            Map.entry("maca", "🍎"),
+            Map.entry("pera", "🍐"),
+            Map.entry("pessego", "🍑"),
+            Map.entry("acerola", "🍒"),
+            Map.entry("cereja", "🍒"),
+            Map.entry("coco", "🥥"),
+            Map.entry("kiwi", "🥝"),
+            Map.entry("cafe", "☕"),
+            Map.entry("leite", "🥛"),
+            Map.entry("cha", "🍵"),
+            Map.entry("achocolatado", "🍫"),
+            Map.entry("chocolate", "🍫"));
+
+    private static final Set<String> SECOES_COM_SABOR =
+            Set.of("suco", "refresco", "bebida", "fruta", "sobremesa");
+
+    private static final Set<String> SECOES_DE_SUCO = Set.of("suco", "refresco");
+
     public static final Pattern CABECALHO = Pattern.compile(
             "^(?<refeicao>" + String.join("|", REFEICOES) + ")"
                     + "(?:\\s+\\d{2}/\\d{2})?\\s*"          // "Almoço 10/09" (as vezes tem a data)
@@ -73,5 +125,33 @@ public final class Vocabulario {
 
     public static String emojiDe(String refeicao) {
         return EMOJI.getOrDefault(normalizar(refeicao), EMOJI_PADRAO);
+    }
+
+    public static Optional<String> emojiDaSecao(String rotulo) {
+        return Optional.ofNullable(EMOJI_SECAO.get(normalizar(rotulo)));
+    }
+
+    /**
+     * O icone de um item, se a secao for de bebida, fruta ou sobremesa e o item
+     * citar um sabor conhecido. Vale o sabor que aparece primeiro, por palavra
+     * inteira: "Suco de Laranja com Acerola" e laranja, e "Pão" nao casa "pera".
+     * Suco de sabor desconhecido (graviola, maracuja) leva a caixinha.
+     */
+    public static Optional<String> emojiDoItem(String rotulo, String item) {
+        String secao = normalizar(rotulo);
+        if (!SECOES_COM_SABOR.contains(secao)) {
+            return Optional.empty();
+        }
+        List<String> palavras = List.of(normalizar(item).split(" "));
+        for (String palavra : palavras) {
+            String emoji = EMOJI_SABOR.get(palavra);
+            if (emoji != null) {
+                return Optional.of(emoji);
+            }
+        }
+        if (SECOES_DE_SUCO.contains(secao) || palavras.contains("suco")) {
+            return Optional.of("🧃");
+        }
+        return Optional.empty();
     }
 }

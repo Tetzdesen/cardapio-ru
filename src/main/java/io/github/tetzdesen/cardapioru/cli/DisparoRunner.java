@@ -119,7 +119,7 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
             pecas.add(Formatador.semCardapio());
         } else {
             for (BlocoRefeicao bloco : resultado.blocos()) {
-                pecas.add(Formatador.bloco(bloco));
+                pecas.add(Formatador.mensagem(bloco));
             }
         }
         pecas.add(Formatador.linkDaOrigem(resultado.origem()));

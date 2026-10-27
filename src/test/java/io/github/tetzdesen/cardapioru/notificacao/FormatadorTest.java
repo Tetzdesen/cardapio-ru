@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.tetzdesen.cardapioru.Fixtures;
 import io.github.tetzdesen.cardapioru.coleta.ParserCardapio;
+import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.dominio.Analise;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
@@ -83,6 +84,44 @@ class FormatadorTest {
 
         assertThat(Formatador.paraWhatsapp(html)).isEqualTo(
                 "☕ *Desjejum* — 16/09\n_Alegre_\n• Pão & manteiga\n\n"
-                        + "ver no site: https://restaurante.alegre.ufes.br/cardapio");
+                        + "🔗 ver no site: https://restaurante.alegre.ufes.br/cardapio");
+    }
+
+    @Test
+    void mensagemPoeIconeNasSecoesENoSaborDoSuco() {
+        BlocoRefeicao almoco = analisar().blocos().get(1);
+
+        String texto = Formatador.mensagem(almoco);
+
+        assertThat(texto)
+                .contains("📍 <i>" + Formatador.escapar(almoco.campus()) + "</i>")
+                .contains("\n🥗 <b>Entrada</b>\n• Almeirão e Rúcula")
+                .contains("\n🍗 <b>Prato Proteico</b>\n• Peixe Frito")
+                .contains("\n🍮 <b>Sobremesa</b>\n🍊 Laranja")
+                .contains("\n🧃 <b>Suco</b>\n🥭 Manga");
+    }
+
+    @Test
+    void sucoDeSaborDesconhecidoLevaACaixinha() {
+        assertThat(Vocabulario.emojiDoItem("Suco", "Graviola")).contains("🧃");
+        assertThat(Vocabulario.emojiDoItem("Bebida", "Suco de Morango")).contains("🍓");
+        assertThat(Vocabulario.emojiDoItem("Bebida", "Leite Integral (CL)")).contains("🥛");
+    }
+
+    @Test
+    void saborSoContaNasSecoesDeBebidaFrutaESobremesa() {
+        assertThat(Vocabulario.emojiDoItem("Prato Proteico", "Frango com Laranja")).isEmpty();
+        assertThat(Vocabulario.emojiDoItem("Pão", "Pão de Coco")).isEmpty();
+    }
+
+    @Test
+    void enfeitarAMensagemNaoMudaAAssinatura() {
+        // o visual e so da mensagem: a assinatura continua sendo a do texto do
+        // Python, para a troca de formato nao reenviar o dia como "mudou"
+        for (BlocoRefeicao bloco : analisar().blocos()) {
+            assertThat(Formatador.mensagem(bloco)).isNotEqualTo(Formatador.bloco(bloco));
+            assertThat(Formatador.assinatura(bloco))
+                    .isEqualTo(Formatador.assinatura(Formatador.bloco(bloco)));
+        }
     }
 }
