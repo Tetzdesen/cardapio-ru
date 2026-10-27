@@ -124,6 +124,43 @@ class DisparoTest {
     }
 
     @Test
+    void soAlteracoesNaoAntecipaRefeicaoAindaNaoAnunciada() {
+        DisparoResposta r = servico.disparar(DIA, List.of(), "alegre", true, true);
+
+        assertThat(r.enviadas()).isEmpty();
+        assertThat(r.omitidas()).containsExactly("Desjejum", "Almoço", "Jantar");
+        verify(telegram, never()).enviar(any());
+        assertThat(arquivo.ler()).isEmpty();
+    }
+
+    @Test
+    void soAlteracoesReanunciaComAvisoSoOQueJaFoiEMudou() {
+        servico.disparar(DIA, List.of("almoco"), "alegre", true);
+
+        var estado = arquivo.ler();
+        estado.put(ArquivoDeEstado.chave(DIA, "almoco"), "assinatura-de-antes");
+        arquivo.gravar(estado);
+        cardapio.limparCache();
+
+        DisparoResposta r = servico.disparar(DIA, List.of(), "alegre", true, true);
+
+        assertThat(r.enviadas()).containsExactly("Almoço");
+        assertThat(r.alteradas()).containsExactly("Almoço");
+        assertThat(r.omitidas()).containsExactly("Desjejum", "Jantar");
+        verify(telegram).enviar(argQueContem(Formatador.AVISO_MUDANCA));
+        assertThat(arquivo.ler()).doesNotContainKey(ArquivoDeEstado.chave(DIA, "jantar"));
+    }
+
+    @Test
+    void soAlteracoesNaoAvisaDiaSemCardapio() throws Exception {
+        given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.VAZIA));
+
+        servico.disparar(DIA, List.of(), "alegre", false, true);
+
+        verify(telegram, never()).enviar(any());
+    }
+
+    @Test
     void telegramRecusaEOEstadoNaoFicaGravado() {
         willThrow(new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU,
                 "Telegram respondeu 400", List.of(), null))

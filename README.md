@@ -126,6 +126,11 @@ O anúncio sai de segunda a sexta, no fuso `America/Sao_Paulo` (`agenda.*` em
 
 Cada refeição chega numa mensagem própria, um pouco antes de o RU abrir para ela.
 
+Entre um anúncio e outro, a **vigia** reconfere o site a cada 20 minutos, das 6h às
+19h59 (`agenda.vigia`). Se uma refeição que já foi para o grupo mudar depois, ela volta
+com o aviso "⚠️ O cardápio mudou desde o último aviso." A que ainda não foi anunciada
+fica para o seu horário: a vigia não antecipa nada, e em dia sem cardápio fica quieta.
+
 Só liga com `AGENDA_ATIVA=true`, que o `render.yaml` define: a API local e os testes não
 falam com o grupo sozinhos.
 
@@ -199,6 +204,9 @@ curl -X POST http://localhost:8080/api/v1/notificacoes \
   -H "Authorization: Bearer $API_TOKEN" -H 'Content-Type: application/json' \
   -d '{"refeicoes":"almoco,jantar","campus":"alegre","silencioso":true}'
 ```
+
+Com `"soAlteracoes":true` no corpo, o disparo só reenvia a refeição que já foi anunciada
+e mudou desde então — é o que a vigia do agendador faz.
 
 Status: `200` cardápio entregue (inclusive vazio) ou disparo sem novidade; `400` parâmetro
 inválido; `401` sem token ou token errado; `502` página irreconhecível ou canal

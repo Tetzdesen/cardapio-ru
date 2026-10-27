@@ -32,6 +32,9 @@ class AgendadorTest {
         given(cardapio.hoje()).willReturn(HOJE);
         given(notificacao.disparar(any(), any(), anyString(), anyBoolean())).willReturn(
                 new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(), List.of()));
+        given(notificacao.disparar(any(), any(), anyString(), anyBoolean(), anyBoolean()))
+                .willReturn(new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(),
+                        List.of()));
     }
 
     @Test
@@ -53,6 +56,21 @@ class AgendadorTest {
         agendador.jantar();
 
         verify(notificacao).disparar(eq(HOJE), eq(List.of("jantar")), eq("alegre"), eq(true));
+    }
+
+    @Test
+    void vigiaReconfereODiaInteiroSoPorAlteracoes() {
+        agendador.vigiar();
+
+        verify(notificacao).disparar(HOJE, List.of(), "alegre", true, true);
+    }
+
+    @Test
+    void falhaDaVigiaNaoDerrubaOAgendador() {
+        given(notificacao.disparar(any(), any(), anyString(), anyBoolean(), anyBoolean()))
+                .willThrow(new FalhaDeOrigem(FalhaDeOrigem.Causa.ORIGEM_INACESSIVEL, "site fora"));
+
+        assertThatCode(agendador::vigiar).doesNotThrowAnyException();
     }
 
     @Test

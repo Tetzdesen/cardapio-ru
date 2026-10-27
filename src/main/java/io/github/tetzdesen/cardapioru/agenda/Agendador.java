@@ -33,6 +33,10 @@ import org.springframework.stereotype.Component;
  * refeicao por disparo e o que separa as mensagens -- o cardapio do dia ainda e
  * consultado inteiro, mas so a refeicao da vez vai para o grupo.
  *
+ * <p>Entre um anuncio e outro, a vigia reconfere o site e reanuncia, com aviso,
+ * a refeicao que ja foi para o grupo e mudou depois disso. A que ainda nao foi
+ * anunciada fica para o seu horario.
+ *
  * <p>O estado fica no disco do conteiner e some quando ele reinicia. Como cada
  * refeicao so e pedida uma vez por dia, um reinicio nao faz nada chegar de novo.
  */
@@ -78,6 +82,19 @@ public class Agendador {
     @Scheduled(cron = "${agenda.jantar}", zone = "${agenda.fuso}")
     public void jantar() {
         disparar("jantar", "jantar");
+    }
+
+    /** Todas as refeicoes do dia: so as ja anunciadas que mudaram vao ao grupo. */
+    @Scheduled(cron = "${agenda.vigia}", zone = "${agenda.fuso}")
+    public void vigiar() {
+        try {
+            var relato = notificacao.disparar(cardapio.hoje(), List.of(), CAMPUS, true, true);
+            if (!relato.enviadas().isEmpty()) {
+                log.info("vigia: reanunciadas por mudanca {}", relato.enviadas());
+            }
+        } catch (RuntimeException e) {
+            log.error("vigia: a reconferencia falhou", e);
+        }
     }
 
     @Scheduled(fixedDelayString = "${agenda.manter-acordado}",

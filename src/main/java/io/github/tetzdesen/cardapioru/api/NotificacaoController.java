@@ -35,7 +35,7 @@ public class NotificacaoController {
             @RequestBody(required = false) DisparoPedido pedido) {
         DisparoPedido p = pedido != null
                 ? pedido
-                : new DisparoPedido(null, null, null, null);
+                : new DisparoPedido(null, null, null, null, null);
 
         LocalDate data = p.data() == null || p.data().isBlank()
                 ? cardapio.hoje()
@@ -45,6 +45,7 @@ public class NotificacaoController {
         // Um disparo em que nada precisava ser enviado nao e erro: 200 com a lista
         // de enviadas vazia e as omitidas nomeadas.
         return ResponseEntity.ok(
-                servico.disparar(data, refeicoes, p.campus(), p.silenciosoOuPadrao()));
+                servico.disparar(data, refeicoes, p.campus(), p.silenciosoOuPadrao(),
+                        p.soAlteracoesOuPadrao()));
     }
 }

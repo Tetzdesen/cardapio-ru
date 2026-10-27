@@ -21,7 +21,7 @@ import java.util.List;
 public final class Formatador {
 
     public static final String AVISO_MUDANCA =
-            "⚠️ <b>O cardápio de hoje mudou desde o aviso de ontem.</b>";
+            "⚠️ <b>O cardápio mudou desde o último aviso.</b>";
 
     private Formatador() {
     }

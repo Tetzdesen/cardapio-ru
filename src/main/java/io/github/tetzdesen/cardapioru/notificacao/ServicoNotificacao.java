@@ -26,6 +26,12 @@ public class ServicoNotificacao {
 
     public synchronized DisparoResposta disparar(LocalDate data, List<String> refeicoes, String campus,
             boolean silencioso) {
-        return disparo.executar(data, refeicoes, campus, silencioso);
+        return disparar(data, refeicoes, campus, silencioso, false);
+    }
+
+    /** Com {@code soAlteracoes}, so reanuncia o que ja foi anunciado e mudou. */
+    public synchronized DisparoResposta disparar(LocalDate data, List<String> refeicoes,
+            String campus, boolean silencioso, boolean soAlteracoes) {
+        return disparo.executar(data, refeicoes, campus, silencioso, soAlteracoes);
     }
 }

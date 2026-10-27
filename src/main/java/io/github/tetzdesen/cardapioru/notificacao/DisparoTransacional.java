@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +59,17 @@ public class DisparoTransacional {
 
     public DisparoResposta executar(LocalDate data, List<String> refeicoes, String campus,
             boolean silencioso) {
+        return executar(data, refeicoes, campus, silencioso, false);
+    }
+
+    /**
+     * Com {@code soAlteracoes}, so volta ao grupo a refeicao que ja foi anunciada
+     * e mudou depois disso. A inedita fica de fora -- ela tem o seu horario -- e
+     * dia sem cardapio nao avisa nada. E o que deixa o agendador reconferir o
+     * site varias vezes ao dia sem antecipar o anuncio de ninguem.
+     */
+    public DisparoResposta executar(LocalDate data, List<String> refeicoes, String campus,
+            boolean silencioso, boolean soAlteracoes) {
         ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus);
 
         List<Canal> ativos = canais.stream().filter(Canal::configurado).toList();
@@ -73,7 +85,8 @@ public class DisparoTransacional {
         RuntimeException primeiraFalha = null;
         for (Canal canal : ativos) {
             try {
-                envios.add(enviarPor(canal, data, resultado, silencioso));
+                envios.add(enviarPor(canal, data, resultado, silencioso || soAlteracoes,
+                        soAlteracoes));
             } catch (RuntimeException e) {
                 log.error("{}: o envio falhou: {}", canal.nome(), e.getMessage());
                 if (primeiraFalha == null) {
@@ -103,16 +116,19 @@ public class DisparoTransacional {
     }
 
     private Envio enviarPor(Canal canal, LocalDate data, ServicoCardapio.Resultado resultado,
-            boolean silencioso) {
+            boolean silencioso, boolean soAlteracoes) {
         List<Classificacao> classificadas =
                 estado.classificar(data, canal.nome(), resultado.blocos());
 
+        Predicate<Classificacao> vai = soAlteracoes
+                ? c -> c.situacao() == Situacao.MUDOU
+                : Classificacao::precisaEnviar;
         Set<String> omitidas = classificadas.stream()
-                .filter(c -> !c.precisaEnviar())
+                .filter(vai.negate())
                 .map(c -> c.bloco().refeicao())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         List<Classificacao> aEnviar = classificadas.stream()
-                .filter(Classificacao::precisaEnviar)
+                .filter(vai)
                 .toList();
 
         if (aEnviar.isEmpty()) {
