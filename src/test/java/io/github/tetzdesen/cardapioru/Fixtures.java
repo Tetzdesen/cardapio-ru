@@ -18,6 +18,8 @@ public final class Fixtures {
      * do Plone, sem cabecalho de refeicao e sem dizer que nao ha cardapio.
      */
     public static final String NAO_PUBLICADA = "pagina-nao-publicada.html";
+    /** Aviso de horario especial de 23/10 a 26/10/2026, capturado em 2026-10-29. */
+    public static final String AVISO_HORARIO = "aviso-horario-2310-2610.html";
 
     private Fixtures() {
     }

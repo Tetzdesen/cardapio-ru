@@ -1,11 +1,14 @@
 package io.github.tetzdesen.cardapioru.notificacao;
 
 import io.github.tetzdesen.cardapioru.api.DisparoResposta;
+import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.Horario;
 import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Classificacao;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Situacao;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
+import io.github.tetzdesen.cardapioru.servico.ServicoHorario;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -13,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -44,12 +48,14 @@ public class DisparoTransacional {
 
     private final ServicoCardapio cardapio;
     private final ServicoEstado estado;
+    private final ServicoHorario horarios;
     private final List<Canal> canais;
 
     public DisparoTransacional(ServicoCardapio cardapio, ServicoEstado estado,
-            List<Canal> canais) {
+            ServicoHorario horarios, List<Canal> canais) {
         this.cardapio = cardapio;
         this.estado = estado;
+        this.horarios = horarios;
         this.canais = List.copyOf(canais);
     }
 
@@ -143,7 +149,8 @@ public class DisparoTransacional {
         }
 
         boolean alguemMudou = aEnviar.stream().anyMatch(c -> c.situacao() == Situacao.MUDOU);
-        List<Peca> pecas = montar(aEnviar, cardapio.origemDe(data), alguemMudou);
+        List<Peca> pecas = montar(aEnviar, cardapio.origemDe(data), alguemMudou,
+                bloco -> horarios.de(data, bloco));
 
         // Por refeicao normalizada: e nesse nome que o canal devolve o que
         // confirmou, e e ele que vira chave no arquivo de estado.
@@ -191,13 +198,15 @@ public class DisparoTransacional {
         estado.registrar(data, canal.nome(), gravaveis);
     }
 
-    static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso) {
+    static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso,
+            Function<BlocoRefeicao, List<Horario>> horarioDe) {
         List<Peca> pecas = new ArrayList<>();
         if (aviso) {
             pecas.add(Peca.avulsa(Formatador.AVISO_MUDANCA));
         }
         for (Classificacao c : blocos) {
-            pecas.add(new Peca(c.refeicaoNormalizada(), Formatador.mensagem(c.bloco())));
+            pecas.add(new Peca(c.refeicaoNormalizada(), Formatador.mensagem(c.bloco(),
+                    horarioDe.apply(c.bloco()))));
         }
         pecas.add(Peca.avulsa(Formatador.linkDaOrigem(origem)));
         return List.copyOf(pecas);

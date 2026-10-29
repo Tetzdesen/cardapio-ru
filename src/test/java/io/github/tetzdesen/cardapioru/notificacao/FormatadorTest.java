@@ -10,8 +10,10 @@ import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.dominio.Analise;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.Horario;
 import java.time.Duration;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -123,5 +125,22 @@ class FormatadorTest {
             assertThat(Formatador.assinatura(bloco))
                     .isEqualTo(Formatador.assinatura(Formatador.bloco(bloco)));
         }
+    }
+
+    @Test
+    void horarioVemLogoAbaixoDoCampusEMarcaOReduzido() {
+        BlocoRefeicao jantar = analisar().blocos().get(2);
+
+        String texto = Formatador.mensagem(jantar, List.of(
+                new Horario("Alegre", "17h15 às 18h30", true),
+                new Horario("Jerônimo Monteiro", "17h15 às 18h30", false),
+                Horario.fechado("Outra")));
+
+        assertThat(texto).contains("📍 <i>" + Formatador.escapar(jantar.campus()) + "</i>\n"
+                + "⚠️ Alegre: 17h15 às 18h30 <b>(horário reduzido)</b>\n"
+                + "🕒 Jerônimo Monteiro: 17h15 às 18h30\n"
+                + "🚫 Outra: <b>sem atendimento</b>\n");
+        assertThat(Formatador.assinatura(jantar))
+                .isEqualTo(Formatador.assinatura(Formatador.bloco(jantar)));
     }
 }

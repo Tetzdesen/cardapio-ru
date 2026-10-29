@@ -17,6 +17,7 @@ import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
 import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
 import io.github.tetzdesen.cardapioru.notificacao.ServicoNotificacao;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
+import io.github.tetzdesen.cardapioru.servico.ServicoHorario;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -37,7 +38,8 @@ class DisparoRunnerTest {
 
     private final ServicoNotificacao notificacao = Mockito.mock(ServicoNotificacao.class);
     private final ServicoCardapio cardapio = Mockito.mock(ServicoCardapio.class);
-    private final DisparoRunner runner = new DisparoRunner(notificacao, cardapio);
+    private final ServicoHorario horarios = Mockito.mock(ServicoHorario.class);
+    private final DisparoRunner runner = new DisparoRunner(notificacao, cardapio, horarios);
 
     @BeforeEach
     void preparar() {

@@ -2,6 +2,7 @@ package io.github.tetzdesen.cardapioru.notificacao;
 
 import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.Horario;
 import io.github.tetzdesen.cardapioru.dominio.Secao;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -70,10 +71,21 @@ public final class Formatador {
      * de mudanca nem reenviar o dia.
      */
     public static String mensagem(BlocoRefeicao bloco) {
+        return mensagem(bloco, List.of());
+    }
+
+    /**
+     * A mensagem com o horario de cada unidade logo abaixo do campus. O horario
+     * tambem fica fora da assinatura: aviso de horario novo nao e cardapio novo.
+     */
+    public static String mensagem(BlocoRefeicao bloco, List<Horario> horarios) {
         String icone = Vocabulario.emojiDe(bloco.refeicao());
         List<String> partes = new ArrayList<>();
         partes.add(icone + " <b>" + escapar(bloco.refeicao()) + "</b> — "
                 + escapar(bloco.data()) + "\n📍 <i>" + escapar(bloco.campus()) + "</i>");
+        for (Horario horario : horarios) {
+            partes.add(horario(horario));
+        }
 
         for (Secao secao : bloco.secoes()) {
             if (secao.itens().isEmpty()) {
@@ -91,6 +103,17 @@ public final class Formatador {
             }
         }
         return String.join("\n", partes);
+    }
+
+    static String horario(Horario h) {
+        String unidade = escapar(h.unidade());
+        if (h.fechado()) {
+            return "🚫 " + unidade + ": <b>sem atendimento</b>";
+        }
+        if (h.reduzido()) {
+            return "⚠️ " + unidade + ": " + escapar(h.faixa()) + " <b>(horário reduzido)</b>";
+        }
+        return "🕒 " + unidade + ": " + escapar(h.faixa());
     }
 
     public static String semCardapio() {

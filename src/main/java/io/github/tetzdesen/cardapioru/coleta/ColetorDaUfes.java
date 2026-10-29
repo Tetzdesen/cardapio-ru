@@ -66,9 +66,18 @@ public class ColetorDaUfes {
         return dia == null ? props.urlBase() : props.urlBase() + "/" + dia;
     }
 
+    /** A pagina inicial do site, onde ficam as noticias. */
+    public String urlInicial() {
+        return URI.create(props.urlBase()).resolve("/").toString();
+    }
+
     /** O HTML cru da pagina. Lanca {@link FalhaDeOrigem} quando nao da para obter. */
     public String baixar(LocalDate dia) {
-        String url = urlDe(dia);
+        return baixarPagina(urlDe(dia));
+    }
+
+    /** Qualquer pagina do site, com o mesmo TLS e a mesma politica de retry. */
+    public String baixarPagina(String url) {
         HttpRequest pedido = HttpRequest.newBuilder(URI.create(url))
                 .header("User-Agent", props.userAgent())
                 .timeout(props.timeout())

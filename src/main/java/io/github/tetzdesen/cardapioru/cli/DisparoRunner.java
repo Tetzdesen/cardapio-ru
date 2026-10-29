@@ -10,6 +10,7 @@ import io.github.tetzdesen.cardapioru.erro.ParametroInvalido;
 import io.github.tetzdesen.cardapioru.notificacao.Formatador;
 import io.github.tetzdesen.cardapioru.notificacao.ServicoNotificacao;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
+import io.github.tetzdesen.cardapioru.servico.ServicoHorario;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,12 +40,15 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
 
     private final ServicoNotificacao notificacao;
     private final ServicoCardapio cardapio;
+    private final ServicoHorario horarios;
 
     private int codigo = Saida.OK;
 
-    public DisparoRunner(ServicoNotificacao notificacao, ServicoCardapio cardapio) {
+    public DisparoRunner(ServicoNotificacao notificacao, ServicoCardapio cardapio,
+            ServicoHorario horarios) {
         this.notificacao = notificacao;
         this.cardapio = cardapio;
+        this.horarios = horarios;
     }
 
     @Override
@@ -119,7 +123,7 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
             pecas.add(Formatador.semCardapio());
         } else {
             for (BlocoRefeicao bloco : resultado.blocos()) {
-                pecas.add(Formatador.mensagem(bloco));
+                pecas.add(Formatador.mensagem(bloco, horarios.de(data, bloco)));
             }
         }
         pecas.add(Formatador.linkDaOrigem(resultado.origem()));
