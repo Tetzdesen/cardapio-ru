@@ -90,7 +90,7 @@ class FormatadorTest {
     }
 
     @Test
-    void mensagemPoeIconeNasSecoesENoSaborDoSuco() {
+    void mensagemPoeIconeNasSecoesESaborDepoisDoMarcador() {
         BlocoRefeicao almoco = analisar().blocos().get(1);
 
         String texto = Formatador.mensagem(almoco);
@@ -99,8 +99,8 @@ class FormatadorTest {
                 .contains("📍 <i>" + Formatador.escapar(almoco.campus()) + "</i>")
                 .contains("\n🥗 <b>Entrada</b>\n• Almeirão e Rúcula")
                 .contains("\n🍗 <b>Prato Proteico</b>\n• Peixe Frito")
-                .contains("\n🍮 <b>Sobremesa</b>\n🍊 Laranja")
-                .contains("\n🧃 <b>Suco</b>\n🥭 Manga");
+                .contains("\n🍮 <b>Sobremesa</b>\n• Laranja 🍊")
+                .contains("\n🧃 <b>Suco</b>\n• Manga 🥭");
     }
 
     @Test

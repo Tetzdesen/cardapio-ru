@@ -98,8 +98,10 @@ public final class Formatador {
                         .orElse(rotulo));
             }
             for (String item : secao.itens()) {
-                String marcador = Vocabulario.emojiDoItem(secao.rotulo(), item).orElse("•");
-                partes.add(marcador + " " + escapar(item));
+                // o sabor vai no fim: no lugar do marcador, desalinhava a secao
+                partes.add("• " + escapar(item) + Vocabulario.emojiDoItem(secao.rotulo(), item)
+                        .map(e -> " " + e)
+                        .orElse(""));
             }
         }
         return String.join("\n", partes);
