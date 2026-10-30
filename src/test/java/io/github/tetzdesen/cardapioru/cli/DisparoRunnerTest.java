@@ -47,7 +47,7 @@ class DisparoRunnerTest {
     }
 
     private static DisparoResposta nada() {
-        return new DisparoResposta(HOJE, true, List.of(), List.of(), List.of("Almoço"),
+        return new DisparoResposta(HOJE, true, List.of(), List.of(), List.of("Almoço"), List.of(),
                 List.of());
     }
 
@@ -98,7 +98,8 @@ class DisparoRunnerTest {
     @Test
     void diaSemCardapioPublicadoSaiComSucesso() {
         given(notificacao.disparar(any(), any(), any(), eq(true))).willReturn(
-                new DisparoResposta(HOJE, false, List.of(), List.of(), List.of(), List.of()));
+                new DisparoResposta(HOJE, false, List.of(), List.of(), List.of(), List.of(),
+                        List.of()));
 
         assertThat(runner.executar(new String[] {"--enviar", "--vazio-silencioso"}))
                 .isEqualTo(Saida.OK);

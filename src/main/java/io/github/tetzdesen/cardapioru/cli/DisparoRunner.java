@@ -4,6 +4,8 @@ import io.github.tetzdesen.cardapioru.api.DisparoResposta;
 import io.github.tetzdesen.cardapioru.coleta.Datas;
 import io.github.tetzdesen.cardapioru.coleta.Filtro;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
+import io.github.tetzdesen.cardapioru.dominio.Horario;
 import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
 import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
 import io.github.tetzdesen.cardapioru.erro.ParametroInvalido;
@@ -118,12 +120,24 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
     private void imprimir(LocalDate data, List<String> refeicoes, String campus) {
         ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus);
 
+        List<DiaSemRu> semRu = horarios.diasSemRu(data, campus);
         List<String> pecas = new ArrayList<>();
+        for (DiaSemRu dia : semRu) {
+            pecas.add(Formatador.semRu(dia, data));
+        }
         if (resultado.blocos().isEmpty()) {
-            pecas.add(Formatador.semCardapio());
+            if (semRu.stream().noneMatch(d -> d.dia().equals(data))) {
+                pecas.add(Formatador.semCardapio());
+            }
         } else {
+            boolean diaSemRu = semRu.stream().anyMatch(d -> d.dia().equals(data));
             for (BlocoRefeicao bloco : resultado.blocos()) {
-                pecas.add(Formatador.mensagem(bloco, horarios.de(data, bloco)));
+                List<Horario> horario = horarios.de(data, bloco, campus);
+                if (horario.isEmpty() || !horario.stream().allMatch(Horario::fechado)) {
+                    pecas.add(Formatador.mensagem(bloco, horario));
+                } else if (!diaSemRu) {
+                    pecas.add(Formatador.semRefeicao(bloco, horario));
+                }
             }
         }
         pecas.add(Formatador.linkDaOrigem(resultado.origem()));
@@ -134,8 +148,8 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
     }
 
     private void relatar(DisparoResposta r) {
-        log.info("data={} publicado={} enviadas={} alteradas={} omitidas={}",
-                r.data(), r.publicado(), r.enviadas(), r.alteradas(), r.omitidas());
+        log.info("data={} publicado={} enviadas={} alteradas={} omitidas={} semRu={}",
+                r.data(), r.publicado(), r.enviadas(), r.alteradas(), r.omitidas(), r.semRu());
         for (String aviso : r.avisos()) {
             log.warn("{}", aviso);
         }

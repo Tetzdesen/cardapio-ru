@@ -65,36 +65,77 @@ public final class QuadroDeHorarios {
         return Optional.empty();
     }
 
-    /**
-     * O horario de cada unidade do {@code campus} naquela refeicao, com as
-     * excecoes aplicadas na ordem -- a ultima que casar vale, como num aviso que
-     * fala do dia inteiro e depois detalha uma refeicao. Unidade sem horario
-     * regular nem excecao (o jantar de sabado) fica de fora.
-     */
+    /** O horario de cada unidade do {@code campus}, sem filtro de unidade. */
     public static List<Horario> de(LocalDate dia, String refeicao, String campus,
             List<Excecao> excecoes) {
+        return de(dia, refeicao, campus, null, excecoes);
+    }
+
+    /**
+     * O horario de cada unidade do {@code campus} naquela refeicao que passa no
+     * {@code filtro} -- o mesmo campus pedido no disparo, para o anuncio de
+     * Alegre nao trazer o horario de Jeronimo. As excecoes valem na ordem: a
+     * ultima que casar vale, como num aviso que fala do dia inteiro e depois
+     * detalha uma refeicao. Unidade sem horario regular nem excecao (o jantar
+     * de sabado) fica de fora.
+     */
+    public static List<Horario> de(LocalDate dia, String refeicao, String campus,
+            String filtro, List<Excecao> excecoes) {
         Optional<String> chave = chaveDe(refeicao);
         if (chave.isEmpty()) {
             return List.of();
         }
 
+        List<String> doFiltro = unidadesDoFiltro(filtro);
         List<Horario> horarios = new ArrayList<>();
         for (String unidade : unidadesDe(campus)) {
-            Horario horario = regular(dia, chave.get(), unidade);
-            for (Excecao e : excecoes) {
-                if (e.dia().equals(dia)
-                        && (e.unidade() == null || e.unidade().equals(unidade))
-                        && (e.refeicao() == null || e.refeicao().equals(chave.get()))) {
-                    horario = e.faixa() == null
-                            ? Horario.fechado(unidade)
-                            : new Horario(unidade, e.faixa(), e.reduzido());
-                }
+            if (!doFiltro.contains(unidade)) {
+                continue;
             }
+            Horario horario = horario(dia, chave.get(), unidade, excecoes);
             if (horario != null) {
                 horarios.add(horario);
             }
         }
         return horarios;
+    }
+
+    /**
+     * As unidades do {@code filtro} que abririam no dia e nao atendem nenhuma
+     * refeicao: o dia sem RU. Dia em que a unidade ja nao abriria -- o domingo
+     * -- nao entra, nem com aviso dizendo que esta fechada.
+     */
+    public static List<String> semAtendimento(LocalDate dia, String filtro,
+            List<Excecao> excecoes) {
+        List<String> fechadas = new ArrayList<>();
+        for (String unidade : unidadesDoFiltro(filtro)) {
+            boolean abriria = false;
+            boolean atende = false;
+            for (String chave : List.of(CAFE, ALMOCO, JANTAR)) {
+                abriria |= regular(dia, chave, unidade) != null;
+                Horario horario = horario(dia, chave, unidade, excecoes);
+                atende |= horario != null && !horario.fechado();
+            }
+            if (abriria && !atende) {
+                fechadas.add(unidade);
+            }
+        }
+        return fechadas;
+    }
+
+    private static Horario horario(LocalDate dia, String chave, String unidade,
+            List<Excecao> excecoes) {
+        Horario horario = regular(dia, chave, unidade);
+        for (Excecao e : excecoes) {
+            if (e.dia().equals(dia)
+                    && (e.unidade() == null || e.unidade().equals(unidade))
+                    && (e.refeicao() == null || e.refeicao().equals(chave))) {
+                horario = e.faixa() == null
+                        ? Horario.fechado(unidade)
+                        : new Horario(unidade, e.faixa(), e.reduzido());
+            }
+        }
+        return horario;
     }
 
     private static Horario regular(LocalDate dia, String chave, String unidade) {
@@ -115,5 +156,19 @@ public final class QuadroDeHorarios {
                 .filter(u -> n.contains(normalizar(u)))
                 .toList();
         return citadas.isEmpty() ? UNIDADES : citadas;
+    }
+
+    /**
+     * As unidades que o campus pedido no disparo cobre, com a mesma regra do
+     * {@link Filtro}: o nome contem o pedido. Vazio, todas.
+     */
+    private static List<String> unidadesDoFiltro(String filtro) {
+        if (filtro == null || filtro.isBlank()) {
+            return UNIDADES;
+        }
+        String n = normalizar(filtro);
+        return UNIDADES.stream()
+                .filter(u -> normalizar(u).contains(n))
+                .toList();
     }
 }

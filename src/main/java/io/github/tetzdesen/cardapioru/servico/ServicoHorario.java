@@ -6,6 +6,7 @@ import io.github.tetzdesen.cardapioru.coleta.QuadroDeHorarios;
 import io.github.tetzdesen.cardapioru.coleta.QuadroDeHorarios.Excecao;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
 import io.github.tetzdesen.cardapioru.dominio.Horario;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -32,6 +33,9 @@ public class ServicoHorario {
     /** Aviso de horario sai com dias de antecedencia; nao vale baixar a cada disparo. */
     static final Duration VALIDADE = Duration.ofMinutes(30);
 
+    /** Quantos dias adiante avisar que nao vai ter RU. */
+    static final int ANTECEDENCIA = 7;
+
     private final ColetorDaUfes coletor;
     private final CardapioProperties props;
 
@@ -43,8 +47,26 @@ public class ServicoHorario {
         this.props = props;
     }
 
-    public List<Horario> de(LocalDate dia, BlocoRefeicao bloco) {
-        return QuadroDeHorarios.de(dia, bloco.refeicao(), bloco.campus(), excecoes());
+    /** O horario das unidades do bloco que passam no {@code campus} pedido. */
+    public List<Horario> de(LocalDate dia, BlocoRefeicao bloco, String campus) {
+        return QuadroDeHorarios.de(dia, bloco.refeicao(), bloco.campus(), campus, excecoes());
+    }
+
+    /**
+     * Os dias, de {@code desde} ate {@link #ANTECEDENCIA} adiante, em que alguma
+     * unidade do {@code campus} nao vai ter RU, segundo os avisos.
+     */
+    public List<DiaSemRu> diasSemRu(LocalDate desde, String campus) {
+        List<Excecao> lidas = excecoes();
+        List<DiaSemRu> dias = new ArrayList<>();
+        for (int i = 0; i <= ANTECEDENCIA; i++) {
+            LocalDate dia = desde.plusDays(i);
+            List<String> fechadas = QuadroDeHorarios.semAtendimento(dia, campus, lidas);
+            if (!fechadas.isEmpty()) {
+                dias.add(new DiaSemRu(dia, fechadas));
+            }
+        }
+        return List.copyOf(dias);
     }
 
     /** Descarta os avisos lidos. Usado pelos testes. */

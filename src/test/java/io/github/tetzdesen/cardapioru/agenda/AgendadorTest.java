@@ -31,9 +31,10 @@ class AgendadorTest {
     void preparar() {
         given(cardapio.hoje()).willReturn(HOJE);
         given(notificacao.disparar(any(), any(), anyString(), anyBoolean())).willReturn(
-                new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(), List.of()));
+                new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(), List.of(),
+                        List.of()));
         given(notificacao.disparar(any(), any(), anyString(), anyBoolean(), anyBoolean()))
-                .willReturn(new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(),
+                .willReturn(new DisparoResposta(HOJE, true, List.of(), List.of(), List.of(), List.of(),
                         List.of()));
     }
 

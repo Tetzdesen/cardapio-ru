@@ -70,6 +70,39 @@ class HorariosTest {
     }
 
     @Test
+    void filtroDoDisparoDeixaSoAUnidadePedida() {
+        LocalDate quinta = LocalDate.of(2026, 10, 29);
+        assertThat(QuadroDeHorarios.de(quinta, "Almoço", AMBOS, "alegre", List.of()))
+                .containsExactly(new Horario(ALEGRE, "11h00 às 13h30", false));
+        assertThat(QuadroDeHorarios.de(quinta, "Almoço", AMBOS, "jeronimo", List.of()))
+                .containsExactly(new Horario(JERONIMO, "11h30 às 13h00", false));
+        assertThat(QuadroDeHorarios.de(quinta, "Almoço", AMBOS, "", List.of())).hasSize(2);
+    }
+
+    @Test
+    void diaFechadoInteiroESemRu() {
+        assertThat(QuadroDeHorarios.semAtendimento(SABADO, "", doAviso()))
+                .containsExactly(ALEGRE, JERONIMO);
+        assertThat(QuadroDeHorarios.semAtendimento(SABADO, "alegre", doAviso()))
+                .containsExactly(ALEGRE);
+    }
+
+    @Test
+    void diaComAlgumaRefeicaoNaoESemRu() {
+        // segunda 26/10: sem cafe e sem jantar, mas com almoco reduzido
+        assertThat(QuadroDeHorarios.semAtendimento(SEGUNDA, "", doAviso())).isEmpty();
+        assertThat(QuadroDeHorarios.semAtendimento(SEXTA, "", doAviso())).isEmpty();
+        assertThat(QuadroDeHorarios.semAtendimento(SABADO, "", List.of())).isEmpty();
+    }
+
+    @Test
+    void domingoFechadoNaoESemRuPorqueNemAbriria() {
+        LocalDate domingo = LocalDate.of(2026, 10, 25);
+        List<Excecao> fechado = List.of(new Excecao(domingo, null, null, null, false));
+        assertThat(QuadroDeHorarios.semAtendimento(domingo, "", fechado)).isEmpty();
+    }
+
+    @Test
     void avisoNaoMexeEmDiaQueEleNaoCita() {
         assertThat(doAviso()).allMatch(e -> !e.dia().isBefore(SEXTA) && !e.dia().isAfter(SEGUNDA));
     }

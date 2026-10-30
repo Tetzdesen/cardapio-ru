@@ -10,8 +10,10 @@ import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.dominio.Analise;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
 import io.github.tetzdesen.cardapioru.dominio.Horario;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
@@ -142,5 +144,20 @@ class FormatadorTest {
                 + "🚫 Outra: <b>sem atendimento</b>\n");
         assertThat(Formatador.assinatura(jantar))
                 .isEqualTo(Formatador.assinatura(Formatador.bloco(jantar)));
+    }
+
+    @Test
+    void diaSemRuDizQuandoEQuaisUnidades() {
+        LocalDate sexta = LocalDate.of(2026, 10, 23);
+        DiaSemRu sabado = new DiaSemRu(LocalDate.of(2026, 10, 24), List.of("Alegre"));
+
+        assertThat(Formatador.semRu(sabado, sexta))
+                .isEqualTo("🚫 <b>Amanhã não vai ter RU</b> — sábado, 24/10\n📍 <i>Alegre</i>");
+        assertThat(Formatador.semRu(sabado, sabado.dia()))
+                .startsWith("🚫 <b>Hoje não tem RU</b> — sábado, 24/10");
+        assertThat(Formatador.semRu(new DiaSemRu(LocalDate.of(2026, 10, 26),
+                List.of("Alegre", "Jerônimo Monteiro")), sexta))
+                .isEqualTo("🚫 <b>Não vai ter RU</b> — segunda-feira, 26/10\n"
+                        + "📍 <i>Alegre e Jerônimo Monteiro</i>");
     }
 }

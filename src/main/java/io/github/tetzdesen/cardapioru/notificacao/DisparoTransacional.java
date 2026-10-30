@@ -2,9 +2,11 @@ package io.github.tetzdesen.cardapioru.notificacao;
 
 import io.github.tetzdesen.cardapioru.api.DisparoResposta;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
 import io.github.tetzdesen.cardapioru.dominio.Horario;
 import io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado;
+import io.github.tetzdesen.cardapioru.estado.ServicoEstado.AvisoSemRu;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Classificacao;
 import io.github.tetzdesen.cardapioru.estado.ServicoEstado.Situacao;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
@@ -40,6 +42,10 @@ import org.springframework.stereotype.Service;
  * <p>Envio parcial registra as refeicoes ja aceitas, como o {@code
  * FalhaDeEnvio.confirmadas} do ru_bot.py fazia: reenviar ao grupo uma refeicao
  * que ja chegou e pior do que deixar a falha visivel no resultado do disparo.
+ *
+ * <p>Junto com o cardapio vai o aviso dos dias sem RU que os avisos de horario
+ * especial anunciam: uma vez com antecedencia e outra no proprio dia, cada uma
+ * so ate o canal confirmar.
  */
 @Service
 public class DisparoTransacional {
@@ -59,8 +65,12 @@ public class DisparoTransacional {
         this.canais = List.copyOf(canais);
     }
 
+    /** Prefixo da peca de dia sem RU, que o canal devolve entre as confirmadas. */
+    private static final String PECA_SEM_RU = "sem-ru|";
+
     /** O que um canal fez, pelo nome da refeicao como aparece no site. */
-    private record Envio(Set<String> enviadas, Set<String> alteradas, Set<String> omitidas) {
+    private record Envio(Set<String> enviadas, Set<String> alteradas, Set<String> omitidas,
+            Set<LocalDate> semRu) {
     }
 
     public DisparoResposta executar(LocalDate data, List<String> refeicoes, String campus,
@@ -72,11 +82,13 @@ public class DisparoTransacional {
      * Com {@code soAlteracoes}, so volta ao grupo a refeicao que ja foi anunciada
      * e mudou depois disso. A inedita fica de fora -- ela tem o seu horario -- e
      * dia sem cardapio nao avisa nada. E o que deixa o agendador reconferir o
-     * site varias vezes ao dia sem antecipar o anuncio de ninguem.
+     * site varias vezes ao dia sem antecipar o anuncio de ninguem. Pelo mesmo
+     * motivo, o aviso de dia sem RU espera o proximo anuncio.
      */
     public DisparoResposta executar(LocalDate data, List<String> refeicoes, String campus,
             boolean silencioso, boolean soAlteracoes) {
         ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus);
+        List<DiaSemRu> semRu = soAlteracoes ? List.of() : horarios.diasSemRu(data, campus);
 
         List<Canal> ativos = canais.stream().filter(Canal::configurado).toList();
         if (ativos.isEmpty()) {
@@ -91,8 +103,8 @@ public class DisparoTransacional {
         RuntimeException primeiraFalha = null;
         for (Canal canal : ativos) {
             try {
-                envios.add(enviarPor(canal, data, resultado, silencioso || soAlteracoes,
-                        soAlteracoes));
+                envios.add(enviarPor(canal, data, campus, resultado, semRu,
+                        silencioso || soAlteracoes, soAlteracoes));
             } catch (RuntimeException e) {
                 log.error("{}: o envio falhou: {}", canal.nome(), e.getMessage());
                 if (primeiraFalha == null) {
@@ -117,12 +129,17 @@ public class DisparoTransacional {
         List<String> omitidas = nomes.stream()
                 .filter(n -> envios.stream().allMatch(e -> e.omitidas().contains(n)))
                 .toList();
+        List<LocalDate> diasSemRu = semRu.stream()
+                .map(DiaSemRu::dia)
+                .filter(d -> envios.stream().anyMatch(e -> e.semRu().contains(d)))
+                .toList();
         return new DisparoResposta(data, resultado.publicado(), enviadas, alteradas, omitidas,
-                resultado.avisos());
+                diasSemRu, resultado.avisos());
     }
 
-    private Envio enviarPor(Canal canal, LocalDate data, ServicoCardapio.Resultado resultado,
-            boolean silencioso, boolean soAlteracoes) {
+    private Envio enviarPor(Canal canal, LocalDate data, String campus,
+            ServicoCardapio.Resultado resultado, List<DiaSemRu> semRu, boolean silencioso,
+            boolean soAlteracoes) {
         List<Classificacao> classificadas =
                 estado.classificar(data, canal.nome(), resultado.blocos());
 
@@ -137,20 +154,58 @@ public class DisparoTransacional {
                 .filter(vai)
                 .toList();
 
+        // Refeicao em que nenhuma unidade pedida atende: o cardapio dela nao vai,
+        // para o grupo nao ler o cardapio de uma refeicao que nao vai acontecer.
+        // Fica sem gravar -- se o aviso for retirado, ela ainda sai como inedita.
+        boolean diaSemRu = semRu.stream().anyMatch(d -> d.dia().equals(data));
+        List<Peca> pecas = new ArrayList<>();
+        List<Classificacao> fechadas = aEnviar.stream()
+                .filter(c -> fechada(horarios.de(data, c.bloco(), campus)))
+                .toList();
+        for (Classificacao c : fechadas) {
+            omitidas.add(c.bloco().refeicao());
+            if (!diaSemRu) {
+                pecas.add(Peca.avulsa(Formatador.semRefeicao(c.bloco(),
+                        horarios.de(data, c.bloco(), campus))));
+            }
+        }
+        if (!fechadas.isEmpty()) {
+            log.info("{}: sem atendimento em {}: {}", canal.nome(), data,
+                    fechadas.stream().map(c -> c.bloco().refeicao()).toList());
+            aEnviar = aEnviar.stream().filter(c -> !fechadas.contains(c)).toList();
+        }
+
+        Map<LocalDate, AvisoSemRu> semRuPendentes = new LinkedHashMap<>();
+        int primeira = 0;
+        for (DiaSemRu dia : semRu) {
+            AvisoSemRu devido = dia.dia().equals(data) ? AvisoSemRu.HOJE : AvisoSemRu.ANTES;
+            AvisoSemRu feito = estado.avisoSemRu(dia.dia(), canal.nome());
+            if (feito == null || feito.compareTo(devido) < 0) {
+                semRuPendentes.put(dia.dia(), devido);
+                // o dia sem RU vai na frente de tudo
+                pecas.add(primeira++, new Peca(PECA_SEM_RU + dia.dia(),
+                        Formatador.semRu(dia, data)));
+            }
+        }
+
         if (aEnviar.isEmpty()) {
-            if (resultado.blocos().isEmpty() && !silencioso) {
-                canal.enviar(List.of(Peca.avulsa(Formatador.semCardapio())));
-                log.info("{}: nada publicado para {}; avisado no grupo", canal.nome(), data);
-            } else {
+            // dia sem RU dispensa o "sem cardapio": o grupo ja sabe por que
+            if (resultado.blocos().isEmpty() && !silencioso && !diaSemRu) {
+                pecas.add(Peca.avulsa(Formatador.semCardapio()));
+                log.info("{}: nada publicado para {}; avisando no grupo", canal.nome(), data);
+            }
+            if (pecas.isEmpty()) {
                 log.info("{}: nada a enviar para {} ({} omitida(s))", canal.nome(), data,
                         omitidas.size());
+                return new Envio(Set.of(), Set.of(), omitidas, Set.of());
             }
-            return new Envio(Set.of(), Set.of(), omitidas);
         }
 
         boolean alguemMudou = aEnviar.stream().anyMatch(c -> c.situacao() == Situacao.MUDOU);
-        List<Peca> pecas = montar(aEnviar, cardapio.origemDe(data), alguemMudou,
-                bloco -> horarios.de(data, bloco));
+        if (!aEnviar.isEmpty()) {
+            pecas.addAll(montar(aEnviar, cardapio.origemDe(data), alguemMudou,
+                    bloco -> horarios.de(data, bloco, campus)));
+        }
 
         // Por refeicao normalizada: e nesse nome que o canal devolve o que
         // confirmou, e e ele que vira chave no arquivo de estado.
@@ -166,7 +221,7 @@ public class DisparoTransacional {
             // o que o canal chegou a aceitar antes de falhar fica gravado, para
             // nao voltar ao grupo no disparo seguinte; a falha continua subindo
             try {
-                gravar(data, canal, porRefeicao, e.confirmadas());
+                gravar(data, canal, porRefeicao, semRuPendentes, e.confirmadas());
             } catch (RuntimeException falhaAoGravar) {
                 // a recusa do canal e a causa primeira: ela sobe, e a falha de
                 // gravacao vai junto para nao se perder
@@ -175,9 +230,9 @@ public class DisparoTransacional {
             throw e;
         }
 
-        gravar(data, canal, porRefeicao, confirmadas);
-        log.info("{}: enviado para {}: {} refeicao(oes){}", canal.nome(), data,
-                confirmadas.size(), alguemMudou ? " (cardapio alterado)" : "");
+        gravar(data, canal, porRefeicao, semRuPendentes, confirmadas);
+        log.info("{}: enviado para {}: {} refeicao(oes), {} dia(s) sem RU{}", canal.nome(), data,
+                aEnviar.size(), semRuPendentes.size(), alguemMudou ? " (cardapio alterado)" : "");
 
         Set<String> enviadas = aEnviar.stream()
                 .map(c -> c.bloco().refeicao())
@@ -186,16 +241,28 @@ public class DisparoTransacional {
                 .filter(c -> c.situacao() == Situacao.MUDOU)
                 .map(c -> c.bloco().refeicao())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return new Envio(enviadas, alteradas, omitidas);
+        return new Envio(enviadas, alteradas, omitidas, semRuPendentes.keySet());
     }
 
     private void gravar(LocalDate data, Canal canal, Map<String, Classificacao> porRefeicao,
-            List<String> confirmadas) {
+            Map<LocalDate, AvisoSemRu> semRuPendentes, List<String> confirmadas) {
         List<Classificacao> gravaveis = confirmadas.stream()
                 .map(porRefeicao::get)
                 .filter(c -> c != null)
                 .toList();
+        Map<LocalDate, AvisoSemRu> semRuAvisados = new LinkedHashMap<>();
+        semRuPendentes.forEach((dia, aviso) -> {
+            if (confirmadas.contains(PECA_SEM_RU + dia)) {
+                semRuAvisados.put(dia, aviso);
+            }
+        });
         estado.registrar(data, canal.nome(), gravaveis);
+        estado.registrarSemRu(canal.nome(), semRuAvisados);
+    }
+
+    /** Ha horario para a refeicao e nenhuma unidade dele atende. */
+    private static boolean fechada(List<Horario> horarios) {
+        return !horarios.isEmpty() && horarios.stream().allMatch(Horario::fechado);
     }
 
     static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso,

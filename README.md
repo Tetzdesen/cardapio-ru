@@ -131,6 +131,21 @@ Entre um anúncio e outro, a **vigia** reconfere o site a cada 20 minutos, das 6
 com o aviso "⚠️ O cardápio mudou desde o último aviso." A que ainda não foi anunciada
 fica para o seu horário: a vigia não antecipa nada, e em dia sem cardápio fica quieta.
 
+### Dias sem RU
+
+Quando um aviso de horário especial da página inicial dá uma unidade como fechada o dia
+inteiro, o anúncio avisa — até 7 dias antes, no primeiro anúncio depois de o aviso sair
+("🚫 Amanhã não vai ter RU — sábado, 24/10"), e de novo no próprio dia ("Hoje não tem
+RU"), cada um uma vez só por canal. Refeição sem atendimento não manda o cardápio, mesmo
+que o site o tenha publicado: num dia sem RU fica só o aviso do dia, e num dia fechado só
+em parte vai "🚫 Sem jantar hoje" no lugar do cardápio do jantar. Como ela não é
+gravada, se o aviso for retirado o cardápio ainda sai normalmente. Como a agenda roda de
+segunda a sexta, o fechamento de um sábado chega na sexta e não tem o lembrete do dia.
+
+O horário e o aviso respeitam o `--campus`: com `alegre`, que é o que a agenda pede, o
+grupo não recebe o horário nem o fechamento de Jerônimo Monteiro. No estado, o aviso
+ocupa a chave `AAAA-MM-DD|sem-ru`, com valor `antes` ou `hoje`.
+
 Só liga com `AGENDA_ATIVA=true`, que o `render.yaml` define: a API local e os testes não
 falam com o grupo sozinhos.
 

@@ -2,14 +2,18 @@ package io.github.tetzdesen.cardapioru.notificacao;
 
 import io.github.tetzdesen.cardapioru.coleta.Vocabulario;
 import io.github.tetzdesen.cardapioru.dominio.BlocoRefeicao;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
 import io.github.tetzdesen.cardapioru.dominio.Horario;
 import io.github.tetzdesen.cardapioru.dominio.Secao;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Porte do {@code formatar_bloco} e do {@code assinatura} do ru_bot.py.
@@ -23,6 +27,9 @@ public final class Formatador {
 
     public static final String AVISO_MUDANCA =
             "⚠️ <b>O cardápio mudou desde o último aviso.</b>";
+
+    private static final DateTimeFormatter DIA =
+            DateTimeFormatter.ofPattern("EEEE, dd/MM", Locale.of("pt", "BR"));
 
     private Formatador() {
     }
@@ -116,6 +123,28 @@ public final class Formatador {
             return "⚠️ " + unidade + ": " + escapar(h.faixa()) + " <b>(horário reduzido)</b>";
         }
         return "🕒 " + unidade + ": " + escapar(h.faixa());
+    }
+
+    /** O aviso de um dia sem RU, contado a partir de {@code hoje}. */
+    public static String semRu(DiaSemRu dia, LocalDate hoje) {
+        String quando;
+        if (dia.dia().equals(hoje)) {
+            quando = "Hoje não tem RU";
+        } else if (dia.dia().equals(hoje.plusDays(1))) {
+            quando = "Amanhã não vai ter RU";
+        } else {
+            quando = "Não vai ter RU";
+        }
+        return "🚫 <b>" + quando + "</b> — " + DIA.format(dia.dia())
+                + "\n📍 <i>" + escapar(String.join(" e ", dia.unidades())) + "</i>";
+    }
+
+    /** No lugar do cardapio de uma refeicao que as {@code fechadas} nao vao servir. */
+    public static String semRefeicao(BlocoRefeicao bloco, List<Horario> fechadas) {
+        String refeicao = bloco.refeicao().toLowerCase(Locale.of("pt", "BR"));
+        return "🚫 <b>Sem " + escapar(refeicao) + " hoje</b>\n📍 <i>"
+                + escapar(String.join(" e ", fechadas.stream().map(Horario::unidade).toList()))
+                + "</i>";
     }
 
     public static String semCardapio() {

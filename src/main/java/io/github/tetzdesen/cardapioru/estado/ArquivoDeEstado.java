@@ -48,6 +48,9 @@ public class ArquivoDeEstado {
 
     private static final Pattern CANAL = Pattern.compile("[a-z]+");
 
+    /** No lugar da refeicao, a chave do aviso de dia sem RU. */
+    public static final String SEM_RU = "sem-ru";
+
     private final Path caminho;
     private final int retencaoDias;
     private final Clock relogio;
@@ -82,7 +85,8 @@ public class ArquivoDeEstado {
 
     /**
      * Porte do {@code _chave_valida}: a data precisa ser uma data e a refeicao
-     * precisa ser uma das que o RU serve, e o canal, se houver, um nome simples.
+     * precisa ser uma das que o RU serve (ou o aviso de dia sem RU), e o canal,
+     * se houver, um nome simples.
      * Formato anterior e lixo caem aqui.
      */
     static boolean chaveValida(String chave) {
@@ -103,7 +107,8 @@ public class ArquivoDeEstado {
                 return false;
             }
         }
-        return DATA_ISO.matcher(dia).matches() && Vocabulario.REFEICOES_NORM.contains(refeicao);
+        return DATA_ISO.matcher(dia).matches()
+                && (Vocabulario.REFEICOES_NORM.contains(refeicao) || refeicao.equals(SEM_RU));
     }
 
     /** Le o estado inteiro, ignorando o que nao entende. Nunca lanca. */

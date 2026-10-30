@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,14 @@ public class ServicoEstado {
         public boolean precisaEnviar() {
             return situacao != Situacao.INALTERADA;
         }
+    }
+
+    /** Ate onde um dia sem RU ja foi avisado ao canal. */
+    public enum AvisoSemRu {
+        /** Avisado com antecedencia; ainda falta o lembrete no proprio dia. */
+        ANTES,
+        /** Avisado no proprio dia: nao volta mais. */
+        HOJE
     }
 
     private static final Logger log = LoggerFactory.getLogger(ServicoEstado.class);
@@ -100,5 +109,35 @@ public class ServicoEstado {
         }
         arquivo.gravar(estado);
         log.info("estado: {} entrada(s) gravada(s) em {}", confirmadas.size(), arquivo.caminho());
+    }
+
+    /** Ate onde o dia sem RU ja foi avisado ao canal; nulo se nunca foi. */
+    public AvisoSemRu avisoSemRu(LocalDate dia, String canal) {
+        String valor = arquivo.ler().get(ArquivoDeEstado.chave(dia, ArquivoDeEstado.SEM_RU, canal));
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return AvisoSemRu.valueOf(valor.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null; // valor que nao entende: avisa de novo
+        }
+    }
+
+    /**
+     * Grava os avisos de dia sem RU que o canal confirmou.
+     *
+     * @throws EstadoIndisponivel se o arquivo nao puder ser gravado
+     */
+    public void registrarSemRu(String canal, Map<LocalDate, AvisoSemRu> avisados) {
+        if (avisados.isEmpty()) {
+            return;
+        }
+        Map<String, String> estado = arquivo.ler();
+        avisados.forEach((dia, aviso) -> estado.put(
+                ArquivoDeEstado.chave(dia, ArquivoDeEstado.SEM_RU, canal),
+                aviso.name().toLowerCase(Locale.ROOT)));
+        arquivo.gravar(estado);
+        log.info("estado: {} dia(s) sem RU gravado(s) em {}", avisados.size(), arquivo.caminho());
     }
 }
