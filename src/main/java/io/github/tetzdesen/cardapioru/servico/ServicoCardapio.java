@@ -75,6 +75,24 @@ public class ServicoCardapio {
         return analise;
     }
 
+    /**
+     * Como {@link #consultar(LocalDate, List, String)}, mas num dia sem RU. Dia
+     * fechado costuma nao ter pagina de cardapio, e o "irreconhecivel" que vem
+     * dela ali e o esperado: vale como dia sem cardapio, nao como site reformado.
+     */
+    public Resultado consultar(LocalDate data, List<String> refeicoes, String campus,
+            boolean diaSemRu) {
+        try {
+            return consultar(data, refeicoes, campus);
+        } catch (FalhaDeOrigem e) {
+            if (!diaSemRu || e.causa() != FalhaDeOrigem.Causa.ESTRUTURA_NAO_RECONHECIDA) {
+                throw e;
+            }
+            log.info("{} e dia sem RU e nao tem cardapio publicado", data);
+            return new Resultado(List.of(), false, List.of(), coletor.urlDe(data));
+        }
+    }
+
     public Resultado consultar(LocalDate data, List<String> refeicoes, String campus) {
         Analise analise = analisar(data);
         List<BlocoRefeicao> filtrados = Filtro.aplicar(analise.blocos(), refeicoes, campus);

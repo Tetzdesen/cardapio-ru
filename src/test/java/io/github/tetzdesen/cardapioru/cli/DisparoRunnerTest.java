@@ -170,7 +170,7 @@ class DisparoRunnerTest {
         BlocoRefeicao almoco = new BlocoRefeicao("Almoço", "Alegre",
                 "quarta-feira, 16 de Setembro de 2026",
                 List.of(new Secao("Entrada", List.of("Alface & Rúcula"))));
-        given(cardapio.consultar(any(), any(), any())).willReturn(
+        given(cardapio.consultar(any(), any(), any(), anyBoolean())).willReturn(
                 new ServicoCardapio.Resultado(List.of(almoco), true, List.of(),
                         "https://restaurante.alegre.ufes.br/cardapio"));
 

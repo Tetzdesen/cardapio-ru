@@ -89,7 +89,8 @@ public class DisparoTransacional {
             boolean silencioso, boolean soAlteracoes) {
         List<DiaSemRu> fechados = horarios.diasSemRu(data, campus);
         List<DiaSemRu> semRu = soAlteracoes ? List.of() : fechados;
-        ServicoCardapio.Resultado resultado = consultar(data, refeicoes, campus, fechados);
+        ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus,
+                DiaSemRu.contem(fechados, data));
 
         List<Canal> ativos = canais.stream().filter(Canal::configurado).toList();
         if (ativos.isEmpty()) {
@@ -138,26 +139,6 @@ public class DisparoTransacional {
                 diasSemRu, resultado.avisos());
     }
 
-    /**
-     * O cardapio do dia. Dia sem RU costuma nao ter pagina de cardapio, e o
-     * "irreconhecivel" que vem dela ali e o esperado: vale como dia sem cardapio,
-     * nao como site reformado.
-     */
-    private ServicoCardapio.Resultado consultar(LocalDate data, List<String> refeicoes,
-            String campus, List<DiaSemRu> fechados) {
-        try {
-            return cardapio.consultar(data, refeicoes, campus);
-        } catch (FalhaDeOrigem e) {
-            boolean fechado = fechados.stream().anyMatch(d -> d.dia().equals(data));
-            if (e.causa() != FalhaDeOrigem.Causa.ESTRUTURA_NAO_RECONHECIDA || !fechado) {
-                throw e;
-            }
-            log.info("{} e dia sem RU e nao tem cardapio publicado", data);
-            return new ServicoCardapio.Resultado(List.of(), false, List.of(),
-                    cardapio.origemDe(data));
-        }
-    }
-
     private Envio enviarPor(Canal canal, LocalDate data, String campus,
             ServicoCardapio.Resultado resultado, List<DiaSemRu> semRu, boolean silencioso,
             boolean soAlteracoes) {
@@ -178,16 +159,18 @@ public class DisparoTransacional {
         // Refeicao em que nenhuma unidade pedida atende: o cardapio dela nao vai,
         // para o grupo nao ler o cardapio de uma refeicao que nao vai acontecer.
         // Fica sem gravar -- se o aviso for retirado, ela ainda sai como inedita.
-        boolean diaSemRu = semRu.stream().anyMatch(d -> d.dia().equals(data));
+        boolean diaSemRu = DiaSemRu.contem(semRu, data);
         List<Peca> pecas = new ArrayList<>();
-        List<Classificacao> fechadas = aEnviar.stream()
-                .filter(c -> fechada(horarios.de(data, c.bloco(), campus)))
-                .toList();
-        for (Classificacao c : fechadas) {
+        List<Classificacao> fechadas = new ArrayList<>();
+        for (Classificacao c : aEnviar) {
+            List<Horario> horario = horarios.de(data, c.bloco(), campus);
+            if (!Horario.todosFechados(horario)) {
+                continue;
+            }
+            fechadas.add(c);
             omitidas.add(c.bloco().refeicao());
             if (!diaSemRu) {
-                pecas.add(Peca.avulsa(Formatador.semRefeicao(c.bloco(),
-                        horarios.de(data, c.bloco(), campus))));
+                pecas.add(Peca.avulsa(Formatador.semRefeicao(c.bloco(), horario)));
             }
         }
         if (!fechadas.isEmpty()) {
@@ -279,11 +262,6 @@ public class DisparoTransacional {
         });
         estado.registrar(data, canal.nome(), gravaveis);
         estado.registrarSemRu(canal.nome(), semRuAvisados);
-    }
-
-    /** Ha horario para a refeicao e nenhuma unidade dele atende. */
-    private static boolean fechada(List<Horario> horarios) {
-        return !horarios.isEmpty() && horarios.stream().allMatch(Horario::fechado);
     }
 
     static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso,

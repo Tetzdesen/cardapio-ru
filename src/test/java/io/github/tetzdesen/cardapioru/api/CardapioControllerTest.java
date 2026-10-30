@@ -36,6 +36,9 @@ class CardapioControllerTest {
     @Autowired
     private ServicoCardapio servico;
 
+    @Autowired
+    private io.github.tetzdesen.cardapioru.servico.ServicoHorario horarios;
+
     private MockMvc mvc;
 
     @BeforeEach
@@ -68,6 +71,36 @@ class CardapioControllerTest {
                 .andExpect(jsonPath("$.refeicoes.length()").value(3))
                 .andExpect(jsonPath("$.origem").value(
                         "https://restaurante.alegre.ufes.br/cardapio"));
+    }
+
+    @Test
+    void cadaRefeicaoTrazOHorarioDaUnidadePedida() throws Exception {
+        paginaServida(Fixtures.COMPLETA);
+
+        // 2026-09-11 e sexta: horario regular, sem aviso
+        mvc().perform(get("/api/v1/cardapios/2026-09-11?campus=alegre"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refeicoes[1].horarios.length()").value(1))
+                .andExpect(jsonPath("$.refeicoes[1].horarios[0].unidade").value("Alegre"))
+                .andExpect(jsonPath("$.refeicoes[1].horarios[0].faixa").value("11h00 às 13h30"))
+                .andExpect(jsonPath("$.semRu.length()").value(0));
+    }
+
+    @Test
+    void diaSemRuSemPaginaDeCardapioResponde200() throws Exception {
+        paginaServida(Fixtures.NAO_PUBLICADA);
+        given(coletor.urlInicial()).willReturn("https://restaurante.alegre.ufes.br/");
+        given(coletor.baixarPagina("https://restaurante.alegre.ufes.br/")).willReturn(
+                "<a href=\"/conteudo/aviso\">Horário Especial de Funcionamento</a>");
+        given(coletor.baixarPagina("https://restaurante.alegre.ufes.br/conteudo/aviso"))
+                .willReturn(Fixtures.ler(Fixtures.AVISO_HORARIO));
+        horarios.limparCache();
+
+        mvc().perform(get("/api/v1/cardapios/2026-10-24"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicado").value(false))
+                .andExpect(jsonPath("$.semRu[0].dia").value("2026-10-24"));
+        horarios.limparCache();
     }
 
     @Test

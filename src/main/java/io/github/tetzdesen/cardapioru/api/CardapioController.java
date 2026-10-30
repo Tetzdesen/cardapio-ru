@@ -2,7 +2,9 @@ package io.github.tetzdesen.cardapioru.api;
 
 import io.github.tetzdesen.cardapioru.coleta.Datas;
 import io.github.tetzdesen.cardapioru.coleta.Filtro;
+import io.github.tetzdesen.cardapioru.dominio.DiaSemRu;
 import io.github.tetzdesen.cardapioru.servico.ServicoCardapio;
+import io.github.tetzdesen.cardapioru.servico.ServicoHorario;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -18,15 +20,21 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>"Hoje" e a ausencia da data, nao um segmento magico: {@code /cardapios/hoje}
  * conviveria mal com {@code /cardapios/{data}}, porque seria um valor que nao e
  * uma data no mesmo lugar onde datas aparecem.
+ *
+ * <p>Cada refeicao vem com o horario das unidades do {@code campus}, e a resposta
+ * com os dias sem RU -- o mesmo que vai ao grupo. Dia sem RU sem pagina de
+ * cardapio responde 200 com {@code publicado=false}, e nao 502.
  */
 @RestController
 @RequestMapping("/api/v1/cardapios")
 public class CardapioController {
 
     private final ServicoCardapio servico;
+    private final ServicoHorario horarios;
 
-    public CardapioController(ServicoCardapio servico) {
+    public CardapioController(ServicoCardapio servico, ServicoHorario horarios) {
         this.servico = servico;
+        this.horarios = horarios;
     }
 
     @GetMapping
@@ -47,11 +55,14 @@ public class CardapioController {
     private ResponseEntity<CardapioResposta> responder(LocalDate data, String refeicoes,
             String campus) {
         List<String> pedidas = Filtro.refeicoesPedidas(refeicoes);
-        ServicoCardapio.Resultado resultado = servico.consultar(data, pedidas, campus);
+        List<DiaSemRu> semRu = horarios.diasSemRu(data, campus);
+        ServicoCardapio.Resultado resultado =
+                servico.consultar(data, pedidas, campus, DiaSemRu.contem(semRu, data));
 
         // 200 tambem no dia vazio e no filtro sem correspondencia: ausencia de
         // cardapio nao e falha, e nao pode ficar na mesma faixa que o site reformado.
         return ResponseEntity.ok(CardapioResposta.de(data, resultado.origem(),
-                resultado.blocos(), resultado.publicado(), resultado.avisos()));
+                resultado.blocos(), b -> horarios.de(data, b, campus), resultado.publicado(),
+                semRu, resultado.avisos()));
     }
 }

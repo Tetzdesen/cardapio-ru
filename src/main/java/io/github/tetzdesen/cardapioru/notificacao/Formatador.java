@@ -35,7 +35,7 @@ public final class Formatador {
     }
 
     /** Equivalente ao {@code html.escape(s, quote=True)} do Python. */
-    static String escapar(String texto) {
+    public static String escapar(String texto) {
         if (texto == null) {
             return "";
         }

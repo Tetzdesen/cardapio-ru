@@ -1,6 +1,7 @@
 package io.github.tetzdesen.cardapioru.agenda;
 
 import io.github.tetzdesen.cardapioru.notificacao.ClienteTelegram;
+import io.github.tetzdesen.cardapioru.notificacao.Formatador;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -42,14 +43,10 @@ public class Alerta {
         if (motivo.length() > 500) {
             motivo = motivo.substring(0, 500) + "…";
         }
-        String texto = "⚠️ <b>Cardápio do RU: o anúncio (" + escapar(qual) + ") falhou</b>\n"
-                + "<code>" + escapar(motivo) + "</code>";
+        String texto = "⚠️ <b>Cardápio do RU: o anúncio (" + Formatador.escapar(qual)
+                + ") falhou</b>\n<code>" + Formatador.escapar(motivo) + "</code>";
         if (telegram.alertar(texto)) {
             ultimo.put(qual, agora);
         }
-    }
-
-    private static String escapar(String texto) {
-        return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

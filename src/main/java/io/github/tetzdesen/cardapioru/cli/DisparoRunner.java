@@ -24,9 +24,9 @@ import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.stereotype.Component;
 
 /**
- * O disparo de uma tacada so: baixa, formata, envia, morre. E o caminho que roda
- * todo dia, num runner do Actions que nao tem servidor no ar nem endereco de
- * rede -- ver design.md, "Modo de uma tacada so com ApplicationRunner".
+ * O disparo de uma tacada so pela linha de comando: baixa, formata, envia (ou
+ * so imprime), morre. O anuncio de todo dia e do {@code Agendador}; este e o
+ * caminho da conferencia e do disparo a mao.
  *
  * <p>Ele nao decide nada por conta propria: chama o mesmo
  * {@link ServicoNotificacao} que o controller chama. Duplicar a decisao aqui
@@ -118,22 +118,23 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
      * envia nem encosta no arquivo de estado.
      */
     private void imprimir(LocalDate data, List<String> refeicoes, String campus) {
-        ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus);
-
         List<DiaSemRu> semRu = horarios.diasSemRu(data, campus);
+        boolean diaSemRu = DiaSemRu.contem(semRu, data);
+        ServicoCardapio.Resultado resultado =
+                cardapio.consultar(data, refeicoes, campus, diaSemRu);
+
         List<String> pecas = new ArrayList<>();
         for (DiaSemRu dia : semRu) {
             pecas.add(Formatador.semRu(dia, data));
         }
         if (resultado.blocos().isEmpty()) {
-            if (semRu.stream().noneMatch(d -> d.dia().equals(data))) {
+            if (!diaSemRu) {
                 pecas.add(Formatador.semCardapio());
             }
         } else {
-            boolean diaSemRu = semRu.stream().anyMatch(d -> d.dia().equals(data));
             for (BlocoRefeicao bloco : resultado.blocos()) {
                 List<Horario> horario = horarios.de(data, bloco, campus);
-                if (horario.isEmpty() || !horario.stream().allMatch(Horario::fechado)) {
+                if (!Horario.todosFechados(horario)) {
                     pecas.add(Formatador.mensagem(bloco, horario));
                 } else if (!diaSemRu) {
                     pecas.add(Formatador.semRefeicao(bloco, horario));

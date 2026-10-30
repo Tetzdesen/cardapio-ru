@@ -120,7 +120,15 @@
     const icone = elemento("span", "icone rounded-3 bg-primary-subtle text-primary-emphasis");
     icone.append(elemento("i", `bi ${ICONES[refeicao.refeicao] || "bi-egg-fried"}`));
     icone.firstChild.setAttribute("aria-hidden", "true");
-    cabecalho.append(icone, elemento("h2", "h5 mb-0", refeicao.refeicao));
+    const titulo = elemento("div");
+    titulo.append(elemento("h2", "h5 mb-0", refeicao.refeicao));
+    for (const h of refeicao.horarios || []) {
+      const texto = h.fechado ? `${h.unidade}: sem atendimento`
+          : `${h.unidade}: ${h.faixa}${h.reduzido ? " (horário reduzido)" : ""}`;
+      const cor = h.fechado ? "text-danger" : h.reduzido ? "text-warning-emphasis" : "text-body-secondary";
+      titulo.append(elemento("div", `small ${cor}`, texto));
+    }
+    cabecalho.append(icone, titulo);
     card.append(cabecalho);
 
     const ul = elemento("ul", "list-group list-group-flush");
@@ -222,7 +230,12 @@
     const comItens = c.refeicoes.filter((r) => r.secoes.some((s) => s.itens.length));
 
     const usados = new Set();
-    if (!c.publicado || !comItens.length) {
+    const fechado = (c.semRu || []).find((d) => d.dia === iso);
+    if (fechado && !comItens.length) {
+      vazio(`Não tem RU ${ehHoje ? "hoje" : "neste dia"} (${fechado.unidades.join(" e ")}), `
+          + "segundo os avisos do RU.",
+          "warning");
+    } else if (!c.publicado || !comItens.length) {
       vazio(`O cardápio ${dia} ainda não foi publicado.`, "info");
     } else {
       $("refeicoes").replaceChildren(...comItens.map((r) => coluna(r, usados)));
