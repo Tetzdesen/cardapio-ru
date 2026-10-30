@@ -74,7 +74,9 @@ todo mundo aprende a ignorar o vermelho.
 > vazia, sem nenhum cabeçalho de refeição, sem dizer que não há cardápio. O parser não
 > distingue isso de um site reformado. É o mesmo comportamento do `ru_bot.py`, está
 > **aceito e fixado por teste** (`DataNaoPublicadaTest`), e corrigir exige heurística nova.
-> O agendamento roda seg–sex, então o anúncio nunca passa por aí.
+> O agendamento só pede o sábado para o almoço, que o site publica. Sábado fechado por
+> aviso (ver "Dias sem RU") não conta como falha; sábado sem cardápio e sem aviso sai
+> com erro, e com `TELEGRAM_CHAT_ALERTA` você fica sabendo.
 
 ## Estado
 
@@ -123,18 +125,18 @@ O `render.yaml` descreve o serviço. Uma vez só:
 3. No log do deploy, procure a linha `Started CardapioRuApplication`. Teste com
    `curl https://<servico>.onrender.com/api/v1/cardapios`.
 
-O anúncio sai de segunda a sexta, no fuso `America/Sao_Paulo` (`agenda.*` em
+O anúncio sai de segunda a sábado, no fuso `America/Sao_Paulo` (`agenda.*` em
 `application.yml`):
 
 | horário | o que faz |
 |---|---|
 | **05h40** | anuncia o desjejum |
-| **10h30** | anuncia o almoço |
+| **10h30** | anuncia o almoço (também aos sábados) |
 | **16h30** | anuncia o jantar |
 
 Cada refeição chega numa mensagem própria, um pouco antes de o RU abrir para ela.
 
-Entre um anúncio e outro, a **vigia** reconfere o site a cada 20 minutos, das 6h às
+Entre um anúncio e outro, a **vigia** reconfere o site a cada 20 minutos, de segunda a sexta, das 6h às
 19h59 (`agenda.vigia`). Se uma refeição que já foi para o grupo mudar depois, ela volta
 com o aviso "⚠️ O cardápio mudou desde o último aviso." A que ainda não foi anunciada
 fica para o seu horário: a vigia não antecipa nada, e em dia sem cardápio fica quieta.
@@ -144,11 +146,11 @@ fica para o seu horário: a vigia não antecipa nada, e em dia sem cardápio fic
 Quando um aviso de horário especial da página inicial dá uma unidade como fechada o dia
 inteiro, o anúncio avisa — até 7 dias antes, no primeiro anúncio depois de o aviso sair
 ("🚫 Amanhã não vai ter RU — sábado, 24/10"), e de novo no próprio dia ("Hoje não tem
-RU"), cada um uma vez só por canal. Refeição sem atendimento não manda o cardápio, mesmo
+RU"), cada um uma vez só por canal. Nesse dia, a falta de página de cardápio não conta
+como falha. Refeição sem atendimento não manda o cardápio, mesmo
 que o site o tenha publicado: num dia sem RU fica só o aviso do dia, e num dia fechado só
 em parte vai "🚫 Sem jantar hoje" no lugar do cardápio do jantar. Como ela não é
-gravada, se o aviso for retirado o cardápio ainda sai normalmente. Como a agenda roda de
-segunda a sexta, o fechamento de um sábado chega na sexta e não tem o lembrete do dia.
+gravada, se o aviso for retirado o cardápio ainda sai normalmente.
 
 O aviso pode vir em lista, por unidade e por dia, ou em texto corrido ("nos dias 30
 (sexta-feira) e 31 de outubro (sábado) não haverá atendimento"). Do texto corrido só

@@ -87,8 +87,9 @@ public class DisparoTransacional {
      */
     public DisparoResposta executar(LocalDate data, List<String> refeicoes, String campus,
             boolean silencioso, boolean soAlteracoes) {
-        ServicoCardapio.Resultado resultado = cardapio.consultar(data, refeicoes, campus);
-        List<DiaSemRu> semRu = soAlteracoes ? List.of() : horarios.diasSemRu(data, campus);
+        List<DiaSemRu> fechados = horarios.diasSemRu(data, campus);
+        List<DiaSemRu> semRu = soAlteracoes ? List.of() : fechados;
+        ServicoCardapio.Resultado resultado = consultar(data, refeicoes, campus, fechados);
 
         List<Canal> ativos = canais.stream().filter(Canal::configurado).toList();
         if (ativos.isEmpty()) {
@@ -135,6 +136,26 @@ public class DisparoTransacional {
                 .toList();
         return new DisparoResposta(data, resultado.publicado(), enviadas, alteradas, omitidas,
                 diasSemRu, resultado.avisos());
+    }
+
+    /**
+     * O cardapio do dia. Dia sem RU costuma nao ter pagina de cardapio, e o
+     * "irreconhecivel" que vem dela ali e o esperado: vale como dia sem cardapio,
+     * nao como site reformado.
+     */
+    private ServicoCardapio.Resultado consultar(LocalDate data, List<String> refeicoes,
+            String campus, List<DiaSemRu> fechados) {
+        try {
+            return cardapio.consultar(data, refeicoes, campus);
+        } catch (FalhaDeOrigem e) {
+            boolean fechado = fechados.stream().anyMatch(d -> d.dia().equals(data));
+            if (e.causa() != FalhaDeOrigem.Causa.ESTRUTURA_NAO_RECONHECIDA || !fechado) {
+                throw e;
+            }
+            log.info("{} e dia sem RU e nao tem cardapio publicado", data);
+            return new ServicoCardapio.Resultado(List.of(), false, List.of(),
+                    cardapio.origemDe(data));
+        }
     }
 
     private Envio enviarPor(Canal canal, LocalDate data, String campus,

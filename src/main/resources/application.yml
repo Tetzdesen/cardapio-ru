@@ -86,9 +86,10 @@ api:
 agenda:
   ativa: ${AGENDA_ATIVA:false}
   fuso: America/Sao_Paulo
-  # Uma mensagem por refeicao, um pouco antes de o RU abrir para ela.
+  # Uma mensagem por refeicao, um pouco antes de o RU abrir para ela. Sabado so
+  # tem almoco, e o site publica o cardapio dele.
   desjejum: "0 40 5 * * MON-FRI"
-  almoco: "0 30 10 * * MON-FRI"
+  almoco: "0 30 10 * * MON-SAT"
   jantar: "0 30 16 * * MON-FRI"
   # Reconfere o site e reanuncia so o que ja foi anunciado e mudou depois.
   vigia: "0 */20 6-19 * * MON-FRI"

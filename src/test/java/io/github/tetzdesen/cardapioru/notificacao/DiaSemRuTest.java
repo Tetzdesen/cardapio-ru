@@ -127,6 +127,29 @@ class DiaSemRuTest {
     }
 
     @Test
+    void diaSemRuSemPaginaDeCardapioNaoEFalha() {
+        // sabado fechado: o site devolve a moldura sem cabecalho de refeicao
+        given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.NAO_PUBLICADA));
+        cardapio.limparCache();
+
+        DisparoResposta r = servico.disparar(SABADO, List.of("Almoço"), "alegre", true);
+
+        assertThat(r.publicado()).isFalse();
+        assertThat(r.semRu()).containsExactly(SABADO);
+    }
+
+    @Test
+    void diaSemPaginaQueOsAvisosNaoFecharamContinuaFalha() {
+        given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.NAO_PUBLICADA));
+        cardapio.limparCache();
+        LocalDate sabadoSemAviso = LocalDate.of(2026, 10, 17);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                servico.disparar(sabadoSemAviso, List.of("Almoço"), "alegre", true))
+                .isInstanceOf(io.github.tetzdesen.cardapioru.erro.FalhaDeOrigem.class);
+    }
+
+    @Test
     void refeicaoFechadaNumDiaComRuViraAvisoCurto() {
         // segunda 26/10: jantar sem atendimento, almoco reduzido
         LocalDate segunda = LocalDate.of(2026, 10, 26);
