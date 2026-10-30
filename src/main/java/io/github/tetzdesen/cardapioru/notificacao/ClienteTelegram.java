@@ -78,7 +78,7 @@ public class ClienteTelegram implements Canal {
         for (Agrupador.Mensagem mensagem : agrupar(pecas)) {
             HttpResponse<String> resposta;
             try {
-                resposta = postar(mensagem.texto());
+                resposta = postar(props.chatId(), mensagem.texto());
             } catch (FalhaDeOrigem e) {
                 throw falha("erro de rede ao falar com o Telegram: " + e.getMessage(),
                         List.copyOf(confirmadas), e);
@@ -92,18 +92,39 @@ public class ClienteTelegram implements Canal {
         return List.copyOf(confirmadas);
     }
 
+    /**
+     * Manda um alerta ao chat de quem cuida do bot, nao ao grupo. Devolve se
+     * chegou; nunca lanca, porque o alerta acompanha uma falha e nao pode
+     * esconder a original.
+     */
+    public boolean alertar(String texto) {
+        if (!props.alertaConfigurado()) {
+            return false;
+        }
+        try {
+            int status = postar(props.chatAlerta(), texto).statusCode();
+            if (status >= 300) {
+                log.warn("o alerta nao chegou: Telegram respondeu {}", status);
+            }
+            return status < 300;
+        } catch (RuntimeException e) {
+            log.warn("o alerta nao chegou: {}", e.getMessage());
+            return false;
+        }
+    }
+
     private static FalhaDeEnvio falha(String mensagem, List<String> confirmadas,
             Throwable origem) {
         return new FalhaDeEnvio(FalhaDeOrigem.Causa.TELEGRAM_RECUSOU, mensagem, confirmadas,
                 origem);
     }
 
-    private HttpResponse<String> postar(String texto) {
+    private HttpResponse<String> postar(String chatId, String texto) {
         String url = props.urlBase() + "/bot" + props.token() + "/sendMessage";
         String corpo;
         try {
             corpo = json.writeValueAsString(Map.of(
-                    "chat_id", props.chatId(),
+                    "chat_id", chatId,
                     "text", texto.strip(),
                     "parse_mode", "HTML",
                     "disable_web_page_preview", true));

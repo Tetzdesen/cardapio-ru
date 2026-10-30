@@ -58,7 +58,7 @@ class ClienteTelegramTest {
     }
 
     private ClienteTelegram cliente(String urlBase, int limiteMensagem) {
-        TelegramProperties props = new TelegramProperties("token-de-teste", "-100123",
+        TelegramProperties props = new TelegramProperties("token-de-teste", "-100123", "",
                 urlBase, Duration.ofSeconds(2), limiteMensagem);
         Retentador retentador = new Retentador(3, Duration.ofSeconds(2), Duration.ofSeconds(60),
                 Duration.ofSeconds(75), Duration.ofSeconds(2), new Tempo() {
@@ -166,7 +166,7 @@ class ClienteTelegramTest {
 
     @Test
     void semConfiguracaoDoTelegramFalhaSemChamarNinguem() {
-        TelegramProperties vazio = new TelegramProperties("", "", "http://exemplo",
+        TelegramProperties vazio = new TelegramProperties("", "", "", "http://exemplo",
                 Duration.ofSeconds(2), 4000);
         ClienteTelegram c = new ClienteTelegram(vazio, HttpClient.newHttpClient(),
                 new Retentador(3, Duration.ofSeconds(1), Duration.ofSeconds(1),

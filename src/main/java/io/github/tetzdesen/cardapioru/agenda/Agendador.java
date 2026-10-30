@@ -37,8 +37,8 @@ import org.springframework.stereotype.Component;
  * a refeicao que ja foi para o grupo e mudou depois disso. A que ainda nao foi
  * anunciada fica para o seu horario.
  *
- * <p>O estado fica no disco do conteiner e some quando ele reinicia. Como cada
- * refeicao so e pedida uma vez por dia, um reinicio nao faz nada chegar de novo.
+ * <p>A falha de um disparo vai ao log e, se configurado, ao chat de alerta: no
+ * Render nao ha codigo de saida para alguem ver.
  */
 @Component
 @Profile("web")
@@ -52,14 +52,16 @@ public class Agendador {
 
     private final ServicoNotificacao notificacao;
     private final ServicoCardapio cardapio;
+    private final Alerta alerta;
     private final String urlPublica;
     private final HttpClient cliente =
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-    public Agendador(ServicoNotificacao notificacao, ServicoCardapio cardapio,
+    public Agendador(ServicoNotificacao notificacao, ServicoCardapio cardapio, Alerta alerta,
             @Value("${agenda.url-publica:}") String urlPublica) {
         this.notificacao = notificacao;
         this.cardapio = cardapio;
+        this.alerta = alerta;
         this.urlPublica = urlPublica;
         if (urlPublica.isBlank()) {
             log.warn("agenda.url-publica vazia: nada mantem o servico acordado, e num host "
@@ -94,6 +96,7 @@ public class Agendador {
             }
         } catch (RuntimeException e) {
             log.error("vigia: a reconferencia falhou", e);
+            alerta.falhou("vigia", e);
         }
     }
 
@@ -127,6 +130,7 @@ public class Agendador {
         } catch (RuntimeException e) {
             // sem quem leia o codigo de saida, o log e o unico lugar onde a falha aparece
             log.error("agenda ({}): o disparo falhou", qual, e);
+            alerta.falhou(qual, e);
         }
     }
 }

@@ -157,6 +157,12 @@ ocupa a chave `AAAA-MM-DD|sem-ru`, com valor `antes` ou `hoje`.
 Só liga com `AGENDA_ATIVA=true`, que o `render.yaml` define: a API local e os testes não
 falam com o grupo sozinhos.
 
+No Render não há código de saída nem job vermelho: um disparo agendado que falha só
+apareceria no log. Com `TELEGRAM_CHAT_ALERTA` definido, a falha também chega a esse chat
+(o seu chat privado com o bot; o id aparece no `getUpdates` depois de você mandar uma
+mensagem a ele), no máximo uma vez a cada 3 horas por tipo de disparo, para a vigia não
+repetir o mesmo alerta a cada 20 minutos com o site fora do ar.
+
 ### Por que a API se pinga
 
 O plano grátis desliga o serviço depois de 15 minutos sem requisição, e serviço desligado

@@ -21,6 +21,9 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      # opcional: o seu chat privado com o bot, para receber as falhas do anuncio
+      - key: TELEGRAM_CHAT_ALERTA
+        sync: false
       # opcionais: sem eles o aviso vai so para o Telegram (whatsapp/README.md)
       - key: WHATSAPP_URL
         sync: false

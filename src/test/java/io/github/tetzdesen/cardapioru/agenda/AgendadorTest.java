@@ -25,7 +25,8 @@ class AgendadorTest {
 
     private final ServicoNotificacao notificacao = mock(ServicoNotificacao.class);
     private final ServicoCardapio cardapio = mock(ServicoCardapio.class);
-    private final Agendador agendador = new Agendador(notificacao, cardapio, "");
+    private final Alerta alerta = mock(Alerta.class);
+    private final Agendador agendador = new Agendador(notificacao, cardapio, alerta, "");
 
     @BeforeEach
     void preparar() {
@@ -81,6 +82,7 @@ class AgendadorTest {
                 new FalhaDeOrigem(FalhaDeOrigem.Causa.ORIGEM_INACESSIVEL, "site fora"));
 
         assertThatCode(agendador::desjejum).doesNotThrowAnyException();
+        verify(alerta).falhou(eq("desjejum"), any(FalhaDeOrigem.class));
     }
 
     @Test
