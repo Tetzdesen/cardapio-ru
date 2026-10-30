@@ -23,7 +23,7 @@ public final class Filtro {
     /**
      * Expande os nomes pedidos e recusa o que nao existe no cardapio do RU.
      * A CLI aceitava qualquer string e simplesmente nao casava com nada -- errar
-     * o nome no workflow viraria silencio permanente, entao aqui recusamos.
+     * o nome na agenda viraria silencio permanente, entao aqui recusamos.
      */
     public static List<String> refeicoesPedidas(String bruto) {
         if (bruto == null || bruto.isBlank() || normalizar(bruto).equals("todas")) {

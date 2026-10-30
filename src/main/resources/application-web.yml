@@ -1,5 +1,5 @@
-# Sobe a API HTTP: consulta do cardapio, disparo manual e saude. Nao participa
-# do agendamento, que roda pelo disparo de uma tacada so.
+# Sobe a API HTTP: consulta do cardapio, disparo manual, saude e, com
+# AGENDA_ATIVA=true, o anuncio agendado (agenda/Agendador.java).
 spring:
   main:
     web-application-type: servlet

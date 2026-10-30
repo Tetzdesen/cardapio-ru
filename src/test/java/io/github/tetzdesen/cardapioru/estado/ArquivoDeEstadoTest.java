@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.config.EstadoProperties;
 import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -35,21 +34,6 @@ class ArquivoDeEstadoTest {
 
     private ArquivoDeEstado em(Path caminho) {
         return new ArquivoDeEstado(new EstadoProperties(caminho), PROPS);
-    }
-
-    @Test
-    void leOArquivoVersionadoNoRepositorio() throws IOException {
-        // o estado que o workflow grava e commita a cada anuncio
-        Path real = Path.of("estado/ultimo-envio.json");
-        assertThat(real).as("o estado de envio precisa continuar no repo").exists();
-
-        Map<String, String> lido = em(real).ler();
-
-        // as entradas mudam todo dia (anuncio acrescenta, retencao poda), entao
-        // nenhuma em particular e fixavel: o que importa e nenhuma ser descartada
-        int noArquivo = new ObjectMapper()
-                .readTree(Files.readString(real, StandardCharsets.UTF_8)).size();
-        assertThat(lido).isNotEmpty().hasSize(noArquivo);
     }
 
     @Test

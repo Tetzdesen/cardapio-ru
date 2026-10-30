@@ -3,9 +3,8 @@ package io.github.tetzdesen.cardapioru.api;
 import java.util.List;
 
 /**
- * Corpo de erro. O {@code causa} e o que distingue os dois casos que dividem a
- * faixa 502 -- "estrutura nao reconhecida" e "Telegram recusou" -- sem obrigar o
- * workflow a ler o corpo para saber se deve ficar vermelho.
+ * Corpo de erro. O {@code causa} e o que distingue os casos que dividem a faixa
+ * 502 -- "estrutura nao reconhecida" e um canal que recusou a mensagem.
  */
 public record ErroResposta(
         int status,

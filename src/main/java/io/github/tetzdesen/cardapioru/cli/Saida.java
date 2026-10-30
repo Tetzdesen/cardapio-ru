@@ -1,13 +1,12 @@
 package io.github.tetzdesen.cardapioru.cli;
 
 /**
- * Os codigos de saida que o agendador le. Sao distintos porque o log do Actions
- * mostra o codigo antes de qualquer corpo, e "site reformado" e "site fora do
- * ar" pedem reacoes diferentes.
+ * Os codigos de saida da linha de comando. Sao distintos porque "site reformado"
+ * e "site fora do ar" pedem reacoes diferentes.
  *
  * <p>Sucesso inclui o disparo em que nada precisava ser enviado e o dia que o
- * site declara sem cardapio: nenhum dos dois e falha, e fazer o job ficar
- * vermelho por isso seria treinar quem olha a ignorar o vermelho.
+ * site declara sem cardapio: nenhum dos dois e falha, e tratar como falha seria
+ * treinar quem olha a ignorar o erro.
  */
 public final class Saida {
 

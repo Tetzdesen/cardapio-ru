@@ -4,10 +4,9 @@ import java.nio.file.Path;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Onde vive o estado de envio. E um arquivo versionado com o projeto, e nao um
- * banco: o runner do agendamento e efemero, entao o que precisa sobreviver entre
- * execucoes volta para o repositorio por um commit -- ver design.md, "O estado
- * vira um arquivo JSON no formato do ru_bot.py".
+ * Onde vive o estado de envio: um arquivo JSON no formato do ru_bot.py, e nao um
+ * banco. No Render, ele sobrevive ao reinicio pelo espelho no GitHub
+ * ({@link EstadoGithubProperties}).
  */
 @ConfigurationProperties(prefix = "estado")
 public record EstadoProperties(Path caminho) {

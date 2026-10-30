@@ -8,3 +8,6 @@ pagina.html
 whatsapp/.env
 whatsapp/sessions/
 whatsapp/media/
+
+# Estado de envio local (no Render, espelhado no ramo "estado")
+estado/

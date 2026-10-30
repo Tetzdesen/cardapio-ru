@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>A diferenca em relacao ao original e o <b>orcamento</b>: a soma das esperas
  * e dos timeouts nao pode passar de {@code orcamentoTotal}, porque do outro lado
- * ha um curl de workflow com paciencia finita. Estourar o orcamento significa
+ * ha quem chamou a API, com paciencia finita. Estourar o orcamento significa
  * desistir e responder erro, nao continuar tentando as cegas.
  */
 public class Retentador {

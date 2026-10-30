@@ -16,7 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * O chamador e um curl num workflow com um segredo. HMAC do corpo, OAuth ou mTLS
+ * O chamador e um curl com um segredo. HMAC do corpo, OAuth ou mTLS
  * seriam cerimonia; o que nao e opcional e a comparacao em tempo constante e o
  * token nunca aparecer em log.
  */

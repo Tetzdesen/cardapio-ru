@@ -4,9 +4,8 @@ spring:
   main:
     # o banner iria para a saida do '--print' junto com o cardapio
     banner-mode: "off"
-    # O caminho que roda todo dia e o disparo de uma tacada so. O padrao deve ser
-    # o caminho comum, para que uma variavel esquecida no Actions nao faca o job
-    # subir um servidor e ficar pendurado ate o timeout. Perfil 'web' sobe a API.
+    # Sem perfil, o jar e o disparo de uma tacada so da linha de comando: roda e
+    # sai, sem subir servidor. O perfil 'web' sobe a API (e o Dockerfile o liga).
     web-application-type: none
   jackson:
     default-property-inclusion: non_null
@@ -31,9 +30,8 @@ cardapio:
   tentativas: 3
   espera-base: 2s
   espera-maxima: 60s
-  # Teto do orcamento inteiro de tentativas. Precisa caber no timeout que o
-  # cliente (o curl do workflow) espera, senao ele desiste enquanto a aplicacao
-  # ainda esta tentando e ninguem descobre o que aconteceu.
+  # Teto do orcamento inteiro de tentativas. Precisa caber no timeout de quem
+  # chama a API, senao ele desiste enquanto a aplicacao ainda esta tentando.
   orcamento-total: 75s
   retencao-dias: 30
   # Alegre/ES nao tem horario de verao desde 2019; offset fixo, como no ru_bot.py.
@@ -44,9 +42,8 @@ cardapio:
   limiar-conteudo: 400
 
 estado:
-  # Arquivo versionado com o projeto: o runner do agendamento e efemero, entao o
-  # que precisa sobreviver entre execucoes volta para o repositorio num commit.
-  # Mesmo formato do ru_bot.py -- o arquivo que ja existe continua valendo.
+  # Mesmo formato do ru_bot.py. Fica fora do git; no Render, o espelho abaixo e
+  # o que o faz sobreviver ao reinicio.
   caminho: ${ESTADO:estado/ultimo-envio.json}
   # Espelho no GitHub, para o estado sobreviver ao deploy e ao reinicio do Render.
   # Sem token, o estado vive so no disco. O ramo nao e o main: commit no main e

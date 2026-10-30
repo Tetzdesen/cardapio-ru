@@ -28,10 +28,10 @@ encontra sozinho.
 ## Como funciona
 
 No Render, a API (perfil `web`) anuncia sozinha — ver "Hospedar no Render". O mesmo jar
-também faz um disparo de uma tacada só pela linha de comando, que é o que o botão manual
-do Actions roda e commita de volta o arquivo de estado quando algo mudou. O que precisa sobreviver entre uma execução e a seguinte — quais
-refeições já foram anunciadas — vive em `estado/ultimo-envio.json`, versionado com o
-projeto.
+também faz um disparo de uma tacada só pela linha de comando, útil para conferir o
+cardápio (`--print`) ou anunciar à mão. O que precisa sobreviver entre uma execução e a
+seguinte — quais refeições já foram anunciadas — vive em `estado/ultimo-envio.json` (ver
+"Estado").
 
 ```bash
 java -jar target/cardapio-ru-*.jar --enviar --refeicoes almoco,jantar --vazio-silencioso
@@ -53,7 +53,8 @@ vez de adivinhar se você queria falar com o grupo. As duas grafias funcionam
 
 ## Códigos de saída
 
-É o código que faz o job do Actions ficar vermelho — o log só explica o porquê.
+Valem para a linha de comando; na API, as mesmas falhas viram status HTTP, e no
+agendador, o alerta de `TELEGRAM_CHAT_ALERTA`.
 
 | código | significado |
 |---|---|
@@ -108,7 +109,7 @@ depois de subir traz o arquivo de lá, e cada gravação vira um commit nesse ra
 o `main` de propósito: commit no `main` é deploy no Render. O token é um *fine-grained
 token* do GitHub com acesso só a este repositório e permissão **Contents: Read and
 write**. Se o GitHub falhar, o disco continua valendo e a gravação seguinte leva tudo
-junto. O botão manual do Actions continua lendo o estado do `main`.
+junto.
 
 O arquivo só é escrito depois de o canal confirmar, e só com as refeições confirmadas.
 Se o envio falhar no meio, o que já chegou ao grupo fica registrado — reenviar amanhã uma
@@ -181,17 +182,10 @@ nas 750 horas grátis.
 
 ### O que se perde por ser grátis
 
-O estado fica no disco do contêiner e **some quando ele reinicia** (deploy, manutenção do
-Render). Como cada refeição só é pedida uma vez por dia, isso não faz nada chegar de novo.
-Não há reenvio de falha: se o site da UFES estiver fora na hora de uma refeição, o erro
-fica no log do Render e aquela refeição não é anunciada.
-
-### O workflow do Actions
-
-Ficou só como botão manual (Actions → *Cardápio do RU* → **Run workflow**), sem
-`schedule`. Ele lê o estado do repositório, não o do Render, então pode repetir o que a
-API já mandou — use só se o Render estiver fora. Ele precisa dos secrets `TELEGRAM_TOKEN`
-e `TELEGRAM_CHAT_ID`.
+O disco do contêiner **some quando ele reinicia** (deploy, manutenção do Render); defina
+`ESTADO_GITHUB_TOKEN` para o estado sobreviver (ver "Estado"). Não há reenvio de falha:
+se o site da UFES estiver fora na hora de uma refeição, aquela refeição não é anunciada,
+e o erro vai ao log e ao chat de `TELEGRAM_CHAT_ALERTA`.
 
 ## Rodar local
 
@@ -209,6 +203,8 @@ Nenhuma variável é obrigatória para `--print`. Para `--enviar`, defina `TELEG
 | `WHATSAPP_URL`, `WHATSAPP_API_KEY`, `WHATSAPP_CHAT_ID` | o envio pelo WhatsApp (opcional) |
 | `WHATSAPP_SESSAO` | sessão do WAHA (padrão `default`) |
 | `ESTADO` | caminho do estado (padrão `estado/ultimo-envio.json`) |
+| `ESTADO_GITHUB_TOKEN` | espelha o estado no ramo `estado` do GitHub (opcional) |
+| `TELEGRAM_CHAT_ALERTA` | chat que recebe as falhas do anúncio agendado (opcional) |
 | `API_TOKEN` | segredo que o `POST /notificacoes` exige, se você subir a API |
 | `PORT` | porta HTTP da API (padrão `8080`) |
 
@@ -298,7 +294,9 @@ Duas coisas avisam antes de virar problema:
   assim mesmo** — o conteúdo continua saindo. Adicione o rótulo em `CATEGORIAS` para calar
   o aviso. A detecção usa a marcação do site (`<p><strong>Rótulo</strong></p>`), e não o
   formato do texto, porque itens e rótulos são lexicalmente idênticos ("Pirão", "Laranja").
-- **Estrutura irreconhecível**: código `4`, e o job do Actions falha.
+- **Estrutura irreconhecível**: código `4` na linha de comando, `502` na API e alerta no
+  agendador — a menos que o dia esteja fechado por aviso, quando a página sem cardápio é
+  o esperado.
 
 Para inspecionar o HTML cru:
 

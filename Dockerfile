@@ -1,6 +1,5 @@
-# A imagem existe para rodar a API — consulta, disparo manual e saúde. Ela não
-# participa do agendamento: o anúncio diário roda como execução de uma tacada só
-# dentro do próprio GitHub Actions, sem host e sem banco.
+# A imagem roda a API — consulta, disparo manual, saúde e, com AGENDA_ATIVA=true,
+# o anúncio agendado. É o que o Render sobe (render.yaml).
 
 # Build
 FROM maven:3.9-eclipse-temurin-21 AS build
@@ -27,9 +26,8 @@ RUN useradd --system --create-home --uid 10001 cardapio \
 USER cardapio
 COPY --from=build /app/target/cardapio-ru-*.jar app.jar
 
-# O estado e um arquivo. Num conteiner sem volume ele some a cada reinicio, e o
-# cardapio do dia seria reanunciado -- a aplicacao avisa isso no log da partida.
-# Monte um volume em /app/estado para hospedar de verdade.
+# O estado e um arquivo. Num conteiner sem volume ele some a cada reinicio: monte
+# um volume em /app/estado ou defina ESTADO_GITHUB_TOKEN para espelha-lo no GitHub.
 VOLUME ["/app/estado"]
 
 # O host injeta PORT; o application.yml ja le essa variavel.
