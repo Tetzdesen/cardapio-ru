@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -38,6 +39,10 @@ import org.springframework.stereotype.Component;
  * arquivo que nao existe e o caso normal da primeira execucao. Gravar falha
  * alto: {@link EstadoIndisponivel} depois de um envio confirmado deixa a
  * inconsistencia visivel a quem agendou, em vez de silenciar amanha.
+ *
+ * <p>Com o {@link EspelhoNoGithub} ativo, o arquivo em disco vira copia de
+ * trabalho: a primeira leitura o traz do GitHub, e cada gravacao vai para os
+ * dois. E o que faz o estado sobreviver ao deploy e ao reinicio do Render.
  */
 @Component
 public class ArquivoDeEstado {
@@ -55,12 +60,24 @@ public class ArquivoDeEstado {
     private final int retencaoDias;
     private final Clock relogio;
     private final ObjectMapper json = new ObjectMapper();
+    private final EspelhoNoGithub espelho;
+
+    /** Se o disco ja recebeu o que esta no GitHub. Sem espelho, nao ha o que trazer. */
+    private boolean sincronizado;
 
     @Autowired
-    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio, Clock relogio) {
+    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio, Clock relogio,
+            EspelhoNoGithub espelho) {
         this.caminho = estado.caminho();
         this.retencaoDias = cardapio.retencaoDias();
         this.relogio = relogio;
+        this.espelho = espelho != null && espelho.ativo() ? espelho : null;
+        this.sincronizado = this.espelho == null;
+    }
+
+    /** So o disco, sem espelho. */
+    public ArquivoDeEstado(EstadoProperties estado, CardapioProperties cardapio, Clock relogio) {
+        this(estado, cardapio, relogio, null);
     }
 
     /** Com o relogio de parede, no fuso do RU. */
@@ -70,6 +87,36 @@ public class ArquivoDeEstado {
 
     public Path caminho() {
         return caminho;
+    }
+
+    /** Onde o estado e espelhado; vazio se so no disco. */
+    public Optional<String> espelho() {
+        return Optional.ofNullable(espelho).map(EspelhoNoGithub::descricao);
+    }
+
+    /**
+     * Traz o estado do GitHub para o disco, uma vez por processo. Na falha, o
+     * disco segue valendo e a proxima leitura tenta de novo -- sem o GitHub, o
+     * pior caso e o de antes do espelho.
+     */
+    private synchronized void sincronizar() {
+        if (sincronizado) {
+            return;
+        }
+        try {
+            Optional<String> remoto = espelho.baixar();
+            if (remoto.isPresent()) {
+                Map<String, String> unido = interpretar(remoto.get(), espelho.descricao());
+                // o que o disco tem de mais novo (gravado enquanto o GitHub falhava) vence
+                unido.putAll(lerDisco());
+                escreverDisco(serializar(new TreeMap<>(unido)));
+            }
+            sincronizado = true;
+            log.info("estado: trazido de {}", espelho.descricao());
+        } catch (EstadoIndisponivel e) {
+            log.warn("estado: nao foi possivel trazer de {}; vale o disco: {}",
+                    espelho.descricao(), e.getMessage());
+        }
     }
 
     /** A chave de uma entrada do Telegram. A refeicao ja chega normalizada ("almoco"). */
@@ -113,20 +160,34 @@ public class ArquivoDeEstado {
 
     /** Le o estado inteiro, ignorando o que nao entende. Nunca lanca. */
     public Map<String, String> ler() {
+        sincronizar();
+        return lerDisco();
+    }
+
+    private Map<String, String> lerDisco() {
         if (!Files.exists(caminho)) {
             log.debug("estado: {} ainda nao existe; tratando como vazio", caminho);
             return new LinkedHashMap<>();
         }
-
-        JsonNode raiz;
         try {
-            raiz = json.readTree(Files.readString(caminho, StandardCharsets.UTF_8));
+            return interpretar(Files.readString(caminho, StandardCharsets.UTF_8),
+                    caminho.toString());
         } catch (IOException e) {
             log.warn("estado em {} ilegivel ({}); tratando como vazio", caminho, e.getMessage());
             return new LinkedHashMap<>();
         }
+    }
+
+    private Map<String, String> interpretar(String texto, String origem) {
+        JsonNode raiz;
+        try {
+            raiz = json.readTree(texto);
+        } catch (IOException e) {
+            log.warn("estado em {} ilegivel ({}); tratando como vazio", origem, e.getMessage());
+            return new LinkedHashMap<>();
+        }
         if (raiz == null || !raiz.isObject()) {
-            log.warn("estado em {} nao e um objeto JSON; tratando como vazio", caminho);
+            log.warn("estado em {} nao e um objeto JSON; tratando como vazio", origem);
             return new LinkedHashMap<>();
         }
 
@@ -155,6 +216,7 @@ public class ArquivoDeEstado {
      * sem escapar acentos, com quebra de linha no fim.
      */
     public void gravar(Map<String, String> estado) {
+        sincronizar();
         String limite = LocalDate.now(relogio).minusDays(retencaoDias).toString();
         Map<String, String> podado = new TreeMap<>();
         for (Map.Entry<String, String> e : estado.entrySet()) {
@@ -168,12 +230,28 @@ public class ArquivoDeEstado {
             log.info("estado: {} entrada(s) anterior(es) a {} removida(s)", descartadas, limite);
         }
 
+        String texto = serializar(podado);
+        escreverDisco(texto);
+        if (espelho == null) {
+            return;
+        }
+        if (!sincronizado) {
+            // mandar agora sobrescreveria o que esta la com um disco que nao o
+            // leu; fica no disco, e a proxima gravacao que conseguir ler leva junto
+            log.warn("estado: gravado so no disco; {} fica para a proxima gravacao",
+                    espelho.descricao());
+            return;
+        }
+        espelho.enviar(texto);
+    }
+
+    private void escreverDisco(String texto) {
         try {
             Path pasta = caminho.toAbsolutePath().getParent();
             if (pasta != null) {
                 Files.createDirectories(pasta);
             }
-            Files.writeString(caminho, serializar(podado), StandardCharsets.UTF_8);
+            Files.writeString(caminho, texto, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new EstadoIndisponivel(
                     "nao foi possivel gravar o estado em " + caminho + ": " + e.getMessage(), e);

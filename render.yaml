@@ -15,6 +15,10 @@ services:
         value: -XX:MaxRAMPercentage=75 -XX:+UseSerialGC
       - key: TELEGRAM_TOKEN
         sync: false
+      # token do GitHub com Contents: read/write so neste repositorio; sem ele o
+      # estado some a cada deploy (README, "Estado")
+      - key: ESTADO_GITHUB_TOKEN
+        sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
       # opcionais: sem eles o aviso vai so para o Telegram (whatsapp/README.md)

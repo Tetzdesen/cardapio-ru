@@ -100,6 +100,14 @@ Entradas mais velhas que 30 dias são podadas na gravação. Entrada ilegível �
 sem erro, e a refeição volta a contar como inédita. **Arquivo ausente é o caso normal da
 primeira execução**, não é falha.
 
+No Render, o disco do contêiner some a cada deploy e reinício. Com `ESTADO_GITHUB_TOKEN`
+definido, o estado é espelhado no ramo `estado` deste repositório: a primeira leitura
+depois de subir traz o arquivo de lá, e cada gravação vira um commit nesse ramo. Não é
+o `main` de propósito: commit no `main` é deploy no Render. O token é um *fine-grained
+token* do GitHub com acesso só a este repositório e permissão **Contents: Read and
+write**. Se o GitHub falhar, o disco continua valendo e a gravação seguinte leva tudo
+junto. O botão manual do Actions continua lendo o estado do `main`.
+
 O arquivo só é escrito depois de o canal confirmar, e só com as refeições confirmadas.
 Se o envio falhar no meio, o que já chegou ao grupo fica registrado — reenviar amanhã uma
 refeição que já chegou é pior do que deixar a falha visível no código de saída.

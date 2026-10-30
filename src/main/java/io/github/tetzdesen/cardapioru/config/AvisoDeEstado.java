@@ -33,6 +33,11 @@ public class AvisoDeEstado {
         log.info("estado de envio em {}{}", caminho,
                 Files.exists(caminho) ? "" : " (ainda nao existe)");
 
+        if (arquivo.espelho().isPresent()) {
+            log.info("estado espelhado em {}", arquivo.espelho().get());
+            return;
+        }
+
         Path temporario = Path.of(System.getProperty("java.io.tmpdir"));
         if (caminho.startsWith(temporario)) {
             log.warn("o estado esta num diretorio temporario ({}): ele some, e o cardapio "

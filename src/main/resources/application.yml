@@ -48,6 +48,16 @@ estado:
   # que precisa sobreviver entre execucoes volta para o repositorio num commit.
   # Mesmo formato do ru_bot.py -- o arquivo que ja existe continua valendo.
   caminho: ${ESTADO:estado/ultimo-envio.json}
+  # Espelho no GitHub, para o estado sobreviver ao deploy e ao reinicio do Render.
+  # Sem token, o estado vive so no disco. O ramo nao e o main: commit no main e
+  # deploy no Render, e um deploy por anuncio reiniciaria o servico.
+  github:
+    url-base: https://api.github.com
+    repositorio: ${ESTADO_GITHUB_REPO:Tetzdesen/cardapio-ru}
+    ramo: ${ESTADO_GITHUB_RAMO:estado}
+    caminho: estado/ultimo-envio.json
+    token: ${ESTADO_GITHUB_TOKEN:}
+    timeout: 20s
 
 telegram:
   token: ${TELEGRAM_TOKEN:}
