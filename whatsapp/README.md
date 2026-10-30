@@ -55,6 +55,7 @@ No Render, em *Environment* do serviço, preencha:
 | `WHATSAPP_URL` | `https://<WAHA_DOMINIO>` |
 | `WHATSAPP_API_KEY` | o mesmo `WAHA_API_KEY` do `.env` |
 | `WHATSAPP_CHAT_ID` | o ID do grupo, terminado em `@g.us` |
+| `WHATSAPP_SESSAO` | o nome da sessão no WAHA, se não for `default` |
 
 O bot passa a mandar cada refeição aos dois canais. Para conferir antes, rode local com
 as mesmas variáveis e `--enviar --refeicoes almoco`.
