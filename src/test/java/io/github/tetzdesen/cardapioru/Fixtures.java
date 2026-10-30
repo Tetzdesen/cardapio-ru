@@ -20,6 +20,11 @@ public final class Fixtures {
     public static final String NAO_PUBLICADA = "pagina-nao-publicada.html";
     /** Aviso de horario especial de 23/10 a 26/10/2026, capturado em 2026-10-29. */
     public static final String AVISO_HORARIO = "aviso-horario-2310-2610.html";
+    /** Avisos em texto corrido, capturados em 2026-10-30. */
+    public static final String AVISO_SEM_ATENDIMENTO = "aviso-sem-atendimento-3010-3110.html";
+    public static final String AVISO_SUSPENSAO = "aviso-suspensao-1010.html";
+    public static final String AVISO_PONTO_FACULTATIVO = "aviso-ponto-facultativo-3010.html";
+    public static final String AVISO_SUSPENSAO_JANTAR = "aviso-suspensao-jantar-2905.html";
 
     private Fixtures() {
     }

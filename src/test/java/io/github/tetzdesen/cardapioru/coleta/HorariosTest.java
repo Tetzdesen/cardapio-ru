@@ -102,6 +102,57 @@ class HorariosTest {
         assertThat(QuadroDeHorarios.semAtendimento(domingo, "", fechado)).isEmpty();
     }
 
+    private static List<Excecao> de(String fixture) {
+        return LeitorDeAvisos.excecoes(Fixtures.ler(fixture), 2026);
+    }
+
+    @Test
+    void textoCorridoComDiasPorExtensoFechaOsDoisDias() {
+        // "nos dias 30 (sexta-feira) e 31 de outubro (sabado) nao havera atendimento"
+        List<Excecao> excecoes = de(Fixtures.AVISO_SEM_ATENDIMENTO);
+
+        assertThat(excecoes).extracting(Excecao::dia).containsOnly(
+                LocalDate.of(2026, 10, 30), LocalDate.of(2026, 10, 31));
+        assertThat(excecoes).allMatch(e -> e.unidade() == null && e.refeicao() == null
+                && e.faixa() == null);
+        assertThat(QuadroDeHorarios.semAtendimento(LocalDate.of(2026, 10, 30), "alegre",
+                excecoes)).containsExactly(ALEGRE);
+    }
+
+    @Test
+    void dataEntreParentesesNaoEDiaFechado() {
+        // "(originalmente assinalado a 28 de outubro)" esta na frase da suspensao
+        assertThat(de(Fixtures.AVISO_SEM_ATENDIMENTO)).extracting(Excecao::dia)
+                .doesNotContain(LocalDate.of(2026, 10, 28));
+    }
+
+    @Test
+    void suspensaoDeUmDiaNasDuasUnidades() {
+        assertThat(de(Fixtures.AVISO_SUSPENSAO)).extracting(Excecao::dia)
+                .containsOnly(LocalDate.of(2026, 10, 10));
+        assertThat(QuadroDeHorarios.semAtendimento(LocalDate.of(2026, 10, 10), "",
+                de(Fixtures.AVISO_SUSPENSAO))).containsExactly(ALEGRE, JERONIMO);
+    }
+
+    @Test
+    void funcionaraNormalmenteNaoFechaNada() {
+        assertThat(de(Fixtures.AVISO_PONTO_FACULTATIVO)).isEmpty();
+    }
+
+    @Test
+    void refeicaoSuspensaEmTextoCorridoFicaDeFora() {
+        // a data numa frase e o "nao sera servido o jantar" em outra: nao se adivinha
+        assertThat(de(Fixtures.AVISO_SUSPENSAO_JANTAR)).isEmpty();
+    }
+
+    @Test
+    void textoCorridoQueCitaUmaUnidadeSoFechaEla() {
+        assertThat(LeitorDeAvisos.doTextoCorrido(
+                "Informamos que o RU de Jerônimo Monteiro não funcionará no dia 5/11.", 2026))
+                .containsExactly(new Excecao(LocalDate.of(2026, 11, 5), JERONIMO, null, null,
+                        false));
+    }
+
     @Test
     void avisoNaoMexeEmDiaQueEleNaoCita() {
         assertThat(doAviso()).allMatch(e -> !e.dia().isBefore(SEXTA) && !e.dia().isAfter(SEGUNDA));

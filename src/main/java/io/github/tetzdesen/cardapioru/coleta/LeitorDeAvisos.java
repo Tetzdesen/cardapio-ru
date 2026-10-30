@@ -29,16 +29,21 @@ import org.jsoup.nodes.Element;
  * 🚫 Fechado durante todo o dia
  * </pre>
  *
- * <p>So entra o que esta nesse formato. Aviso escrito em paragrafo corrido fica
- * de fora -- melhor anunciar o horario regular do que um horario adivinhado.
+ * <p>Do aviso em paragrafo corrido so entra o dia inteiro sem atendimento, que
+ * e o caso comum ("no dia 10 de outubro de 2026 (sabado), nao havera atendimento
+ * nos RUs de Alegre e Jeronimo Monteiro"): uma frase que fecha e nao cita
+ * refeicao. Refeicao suspensa em texto corrido costuma por a data numa frase e a
+ * refeicao em outra ("nesse dia nao sera servido o jantar"), e fica de fora --
+ * melhor anunciar o horario regular do que um horario adivinhado.
  */
 public final class LeitorDeAvisos {
 
     /** Titulo de noticia que vale abrir. */
-    private static final Pattern TITULO = Pattern.compile("horario|funcionamento|atendimento");
+    private static final Pattern TITULO =
+            Pattern.compile("horario|funcionamento|atendimento|suspens");
 
     /** Quantas noticias abrir: as mais novas vem primeiro na pagina inicial. */
-    static final int MAXIMO = 4;
+    static final int MAXIMO = 5;
 
     private static final Pattern DIA =
             Pattern.compile("\\b(\\d{1,2})/(\\d{1,2})(?:/(\\d{4}))?\\b");
@@ -55,6 +60,27 @@ public final class LeitorDeAvisos {
 
     private static final Pattern FECHADO = Pattern.compile(
             "sem atendimento|fechad|nao havera|suspens|nao sera servid|nao funcionara");
+
+    /** Frase de texto corrido que fecha o RU. Sobre o texto sem acento, com pontuacao. */
+    private static final Pattern FECHA_NO_TEXTO = Pattern.compile(
+            "nao havera (?:atendimento|funcionamento|expediente)|sem atendimento"
+                    + "|suspensao (?:do|de) (?:atendimento|funcionamento)"
+                    + "|nao (?:funcionara|abrira)|(?:estara|permanecera|ficara) fechad");
+
+    private static final Pattern CITA_REFEICAO =
+            Pattern.compile("cafe da manha|desjejum|almoco|jantar");
+
+    private static final Pattern MES = Pattern.compile(
+            "\\b((?:\\d{1,2}[ºo]?\\s*(?:,|e)\\s*)*\\d{1,2})[ºo]?\\s+de\\s+"
+                    + "(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro"
+                    + "|outubro|novembro|dezembro)(?:\\s+de\\s+(\\d{4}))?");
+
+    private static final List<String> MESES = List.of("janeiro", "fevereiro", "marco",
+            "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro",
+            "dezembro");
+
+    private static final Pattern PARENTESES = Pattern.compile("\\([^)]*\\)");
+    private static final Pattern NUMERO = Pattern.compile("\\d{1,2}");
 
     /** Linha curta o bastante para ser titulo de unidade ou de dia, e nao paragrafo. */
     private static final int TITULO_CURTO = 60;
@@ -104,6 +130,12 @@ public final class LeitorDeAvisos {
                 continue;
             }
 
+            List<Excecao> doTexto = doTextoCorrido(linha, anoPadrao);
+            if (!doTexto.isEmpty()) {
+                excecoes.addAll(doTexto);
+                continue;
+            }
+
             if (linha.length() > TITULO_CURTO) {
                 continue;
             }
@@ -126,6 +158,60 @@ public final class LeitorDeAvisos {
     }
 
     /**
+     * Os dias inteiros sem atendimento de um paragrafo corrido, frase a frase.
+     * O que esta entre parenteses nao conta como data: e la que o aviso poe o
+     * dia da semana e as datas de contexto ("originalmente assinalado a 28 de
+     * outubro"), que nao sao dia fechado.
+     */
+    static List<Excecao> doTextoCorrido(String linha, int anoPadrao) {
+        List<Excecao> excecoes = new ArrayList<>();
+        for (String frase : semAcento(linha).split("(?<=[.!?;])\\s+")) {
+            if (!FECHA_NO_TEXTO.matcher(frase).find() || CITA_REFEICAO.matcher(frase).find()) {
+                continue;
+            }
+            Optional<String> citada = unidadeDe(normalizar(frase));
+            String unidade = citada == null ? null : citada.orElse(null);
+            String semParenteses = PARENTESES.matcher(frase).replaceAll(" ");
+
+            Set<LocalDate> dias = new LinkedHashSet<>();
+            Matcher numerica = DIA.matcher(semParenteses);
+            while (numerica.find()) {
+                dias.add(data(numerica, anoPadrao));
+            }
+            Matcher porExtenso = MES.matcher(semParenteses);
+            while (porExtenso.find()) {
+                int mes = MESES.indexOf(porExtenso.group(2)) + 1;
+                int ano = porExtenso.group(3) != null
+                        ? Integer.parseInt(porExtenso.group(3)) : anoPadrao;
+                Matcher numero = NUMERO.matcher(porExtenso.group(1));
+                while (numero.find()) {
+                    dias.add(dia(ano, mes, Integer.parseInt(numero.group())));
+                }
+            }
+            dias.remove(null);
+            for (LocalDate dia : dias) {
+                excecoes.add(new Excecao(dia, unidade, null, null, false));
+            }
+        }
+        return excecoes;
+    }
+
+    /** Minusculo e sem acento, mas com a pontuacao que separa frase e data. */
+    private static String semAcento(String texto) {
+        return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static LocalDate dia(int ano, int mes, int dia) {
+        try {
+            return LocalDate.of(ano, mes, dia);
+        } catch (DateTimeException e) {
+            return null;
+        }
+    }
+
+    /**
      * A unidade de um titulo como "📍 RU Alegre". Nulo quando a linha nao e
      * titulo de unidade; vazio quando cita as duas.
      */
@@ -143,11 +229,7 @@ public final class LeitorDeAvisos {
 
     private static LocalDate data(Matcher m, int anoPadrao) {
         int ano = m.group(3) != null ? Integer.parseInt(m.group(3)) : anoPadrao;
-        try {
-            return LocalDate.of(ano, Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)));
-        } catch (DateTimeException e) {
-            return null;
-        }
+        return dia(ano, Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)));
     }
 
     private static String faixa(Matcher m) {

@@ -150,6 +150,12 @@ em parte vai "🚫 Sem jantar hoje" no lugar do cardápio do jantar. Como ela n�
 gravada, se o aviso for retirado o cardápio ainda sai normalmente. Como a agenda roda de
 segunda a sexta, o fechamento de um sábado chega na sexta e não tem o lembrete do dia.
 
+O aviso pode vir em lista, por unidade e por dia, ou em texto corrido ("nos dias 30
+(sexta-feira) e 31 de outubro (sábado) não haverá atendimento"). Do texto corrido só
+entra o dia inteiro: a frase precisa fechar o RU e não citar refeição, e data entre
+parênteses não conta. Refeição suspensa em texto corrido ("nesse dia não será servido o
+jantar") fica de fora, porque a data costuma estar em outra frase.
+
 O horário e o aviso respeitam o `--campus`: com `alegre`, que é o que a agenda pede, o
 grupo não recebe o horário nem o fechamento de Jerônimo Monteiro. No estado, o aviso
 ocupa a chave `AAAA-MM-DD|sem-ru`, com valor `antes` ou `hoje`.
