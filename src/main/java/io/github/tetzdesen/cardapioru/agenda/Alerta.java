@@ -49,4 +49,22 @@ public class Alerta {
             ultimo.put(qual, agora);
         }
     }
+
+    /**
+     * A nova tentativa saiu. So avisa se a falha foi avisada -- sem isso, quem
+     * le o chat nem sabia que havia o que recuperar.
+     */
+    public synchronized void recuperou(String qual) {
+        if (ultimo.remove(qual) != null) {
+            telegram.alertar("✅ <b>Cardápio do RU: o anúncio (" + Formatador.escapar(qual)
+                    + ") saiu na nova tentativa</b>");
+        }
+    }
+
+    /** Passou do prazo e o anuncio nao saiu: o grupo ficou sem ele hoje. */
+    public synchronized void desistiu(String qual) {
+        ultimo.remove(qual);
+        telegram.alertar("❌ <b>Cardápio do RU: o anúncio (" + Formatador.escapar(qual)
+                + ") não saiu hoje</b>\nAs novas tentativas falharam até o prazo da refeição.");
+    }
 }

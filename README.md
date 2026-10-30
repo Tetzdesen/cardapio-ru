@@ -80,10 +80,18 @@ O anúncio sai no fuso `America/Sao_Paulo` (`agenda.*` em `application.yml`):
 | **10h30** | seg–sáb | anuncia o almoço (sábado só tem almoço) |
 | **16h30** | seg–sex | anuncia o jantar |
 | a cada 20 min, 6h–19h59 | seg–sex | **vigia**: reanuncia o que mudou |
+| a cada 10 min, 5h–19h59 | seg–sáb | **recuperação**: tenta de novo o anúncio que falhou |
 
 Cada refeição chega numa mensagem própria, um pouco antes de o RU abrir para ela: quem lê
 o aviso do jantar de manhã já esqueceu quando chega a hora. Todos os disparos da agenda
 pedem o campus `alegre`.
+
+A **recuperação** tenta de novo, a cada 10 minutos, o anúncio que falhou (site da UFES
+fora do ar, canal recusando), até o prazo da refeição — desjejum 07h30, almoço 13h00,
+jantar 19h00 (`agenda.prazo.*`). Depois disso o RU já está fechando e anunciar não serve a
+ninguém. Repetir é seguro: o estado garante que o canal que já recebeu não recebe de
+novo. Só entra o que falhou no processo que está no ar; o anúncio que nem chegou a rodar,
+porque o serviço reiniciava na hora exata, fica de fora.
 
 A **vigia** reconfere o site entre um anúncio e outro. Se uma refeição que já foi para o
 grupo mudar depois, ela volta com "⚠️ O cardápio mudou desde o último aviso." A que ainda
@@ -220,8 +228,10 @@ próprio bot manda o motivo a esse chat:
 nenhum bloco de refeicao reconhecido em https://restaurante.alegre.ufes.br/cardapio/...
 ```
 
-Cada tipo de disparo alerta no máximo uma vez a cada 3 horas, para a vigia não repetir o
-mesmo alerta a cada 20 minutos com o site fora do ar.
+Cada tipo de disparo alerta no máximo uma vez a cada 3 horas, para a vigia e a
+recuperação não repetirem o mesmo alerta com o site fora do ar. Quando a recuperação
+consegue, chega `✅ o anúncio (almoco) saiu na nova tentativa`; quando passa do prazo sem
+conseguir, `❌ o anúncio (almoco) não saiu hoje`.
 
 ### Por que a API se pinga
 
@@ -233,8 +243,8 @@ passa pela borda do Render conta como tráfego. Um serviço ligado o mês inteir
 
 ### Limites do plano grátis
 
-- Não há reenvio de falha: se o site da UFES estiver fora na hora de uma refeição, aquela
-  refeição não é anunciada. A falha vai ao log e ao chat de alerta.
+- Se o site da UFES ficar fora do ar até o prazo da refeição, ela não é anunciada naquele
+  dia. A falha vai ao log e ao chat de alerta.
 - Sem `ESTADO_GITHUB_TOKEN`, um reinício esquece o que já foi anunciado. Cada refeição só é
   pedida uma vez por dia, mas o aviso de dia sem RU pode se repetir e a vigia deixa de
   perceber mudanças nas refeições anunciadas antes do reinício.
@@ -480,7 +490,7 @@ docker run -p 8080:8080 -v "$PWD/estado:/app/estado" \
 
 | pacote | o que tem |
 |---|---|
-| `agenda` | `Agendador` (os horários do anúncio, a vigia, o ping) e `Alerta` |
+| `agenda` | `Agendador` (os horários do anúncio, a vigia, a recuperação, o ping) e `Alerta` |
 | `api` | os controllers, os corpos de resposta e o mapa de erros para status HTTP |
 | `cli` | o disparo de uma tacada só e os códigos de saída |
 | `coleta` | baixar o site (`ColetorDaUfes`, com retry e TLS), o parser do cardápio, o leitor de avisos e o `QuadroDeHorarios` |

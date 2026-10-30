@@ -62,6 +62,28 @@ class AlertaTest {
     }
 
     @Test
+    void recuperacaoSoEAvisadaSeAFalhaFoi() {
+        given(telegram.alertar(anyString())).willReturn(true);
+
+        alerta.recuperou("almoco"); // nenhuma falha avisada: nada a dizer
+        alerta.falhou("almoco", new IllegalStateException("fora"));
+        alerta.recuperou("almoco");
+
+        verify(telegram).alertar(contains("saiu na nova tentativa"));
+    }
+
+    @Test
+    void recuperarLiberaOProximoAlertaDeFalha() {
+        given(telegram.alertar(anyString())).willReturn(true);
+
+        alerta.falhou("almoco", new IllegalStateException("fora"));
+        alerta.recuperou("almoco");
+        alerta.falhou("almoco", new IllegalStateException("fora de novo"));
+
+        verify(telegram, times(2)).alertar(contains("falhou"));
+    }
+
+    @Test
     void alertaQueNaoChegouTentaDeNovoNaProxima() {
         given(telegram.alertar(anyString())).willReturn(false, true);
 

@@ -7,10 +7,16 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -39,6 +45,14 @@ import org.springframework.stereotype.Component;
  *
  * <p>A falha de um disparo vai ao log e, se configurado, ao chat de alerta: no
  * Render nao ha codigo de saida para alguem ver.
+ *
+ * <p>A refeicao cujo anuncio falhou e tentada de novo a cada rodada da
+ * {@link #recuperar recuperacao}, ate o prazo dela -- depois disso o RU ja esta
+ * fechando e anunciar nao serve a ninguem. Repetir e seguro porque o disparo e
+ * idempotente pelo estado: o canal que ja recebeu nao recebe de novo. So entra o
+ * que falhou neste processo; o que nem chegou a rodar (o servico reiniciando na
+ * hora exata) fica de fora, porque refazer tudo depois de cada reinicio
+ * repetiria as mensagens que nao sao gravadas, como "Sem jantar hoje".
  */
 @Component
 @Profile("web")
@@ -50,18 +64,42 @@ public class Agendador {
 
     private static final String CAMPUS = "alegre";
 
+    /** O que cada anuncio pede: "cafe da manha" cobre Desjejum e Cafe da Manha. */
+    private static final Map<String, String> REFEICOES = Map.of(
+            "desjejum", "cafe da manha", "almoco", "almoco", "jantar", "jantar");
+
     private final ServicoNotificacao notificacao;
     private final ServicoCardapio cardapio;
     private final Alerta alerta;
+    private final Clock relogio;
+    private final Map<String, LocalTime> prazos;
     private final String urlPublica;
+
+    /** Os anuncios que falharam, pelo dia em que falharam. */
+    private final Map<String, LocalDate> pendentes = new ConcurrentHashMap<>();
     private final HttpClient cliente =
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
+    @Autowired
     public Agendador(ServicoNotificacao notificacao, ServicoCardapio cardapio, Alerta alerta,
-            @Value("${agenda.url-publica:}") String urlPublica) {
+            Clock relogio,
+            @Value("${agenda.url-publica:}") String urlPublica,
+            @Value("${agenda.prazo.desjejum}") String prazoDesjejum,
+            @Value("${agenda.prazo.almoco}") String prazoAlmoco,
+            @Value("${agenda.prazo.jantar}") String prazoJantar) {
+        this(notificacao, cardapio, alerta, relogio, urlPublica, Map.of(
+                "desjejum", LocalTime.parse(prazoDesjejum),
+                "almoco", LocalTime.parse(prazoAlmoco),
+                "jantar", LocalTime.parse(prazoJantar)));
+    }
+
+    Agendador(ServicoNotificacao notificacao, ServicoCardapio cardapio, Alerta alerta,
+            Clock relogio, String urlPublica, Map<String, LocalTime> prazos) {
         this.notificacao = notificacao;
         this.cardapio = cardapio;
         this.alerta = alerta;
+        this.relogio = relogio;
+        this.prazos = Map.copyOf(prazos);
         this.urlPublica = urlPublica;
         if (urlPublica.isBlank()) {
             log.warn("agenda.url-publica vazia: nada mantem o servico acordado, e num host "
@@ -69,21 +107,20 @@ public class Agendador {
         }
     }
 
-    /** "cafe da manha" cobre os dois nomes que o site usa: Desjejum e Cafe da Manha. */
     @Scheduled(cron = "${agenda.desjejum}", zone = "${agenda.fuso}")
     public void desjejum() {
-        disparar("desjejum", "cafe da manha");
+        disparar("desjejum");
     }
 
     /** Tarde o bastante para pegar as correcoes que o site costuma fazer de manha. */
     @Scheduled(cron = "${agenda.almoco}", zone = "${agenda.fuso}")
     public void almoco() {
-        disparar("almoco", "almoco");
+        disparar("almoco");
     }
 
     @Scheduled(cron = "${agenda.jantar}", zone = "${agenda.fuso}")
     public void jantar() {
-        disparar("jantar", "jantar");
+        disparar("jantar");
     }
 
     /** Todas as refeicoes do dia: so as ja anunciadas que mudaram vao ao grupo. */
@@ -121,15 +158,41 @@ public class Agendador {
         }
     }
 
-    private void disparar(String qual, String refeicoes) {
-        List<String> pedidas = Filtro.refeicoesPedidas(refeicoes);
+    /** Tenta de novo os anuncios que falharam hoje, ate o prazo de cada um. */
+    @Scheduled(cron = "${agenda.recuperacao}", zone = "${agenda.fuso}")
+    public void recuperar() {
+        LocalDate hoje = cardapio.hoje();
+        LocalTime agora = LocalTime.now(relogio);
+        for (Map.Entry<String, LocalDate> pendente : Map.copyOf(pendentes).entrySet()) {
+            String qual = pendente.getKey();
+            if (!pendente.getValue().equals(hoje)) {
+                pendentes.remove(qual); // de outro dia: o anuncio dele ja passou
+            } else if (agora.isBefore(prazos.get(qual))) {
+                log.info("agenda ({}): tentando de novo o anuncio que falhou", qual);
+                disparar(qual);
+            } else {
+                pendentes.remove(qual);
+                log.warn("agenda ({}): passou do prazo de {}; o anuncio nao saiu", qual,
+                        prazos.get(qual));
+                alerta.desistiu(qual);
+            }
+        }
+    }
+
+    private void disparar(String qual) {
+        List<String> pedidas = Filtro.refeicoesPedidas(REFEICOES.get(qual));
+        LocalDate hoje = cardapio.hoje();
         try {
-            var relato = notificacao.disparar(cardapio.hoje(), pedidas, CAMPUS, true);
+            var relato = notificacao.disparar(hoje, pedidas, CAMPUS, true);
             log.info("agenda ({}): enviadas {}, omitidas {}", qual, relato.enviadas(),
                     relato.omitidas());
+            if (pendentes.remove(qual) != null) {
+                alerta.recuperou(qual);
+            }
         } catch (RuntimeException e) {
             // sem quem leia o codigo de saida, o log e o unico lugar onde a falha aparece
             log.error("agenda ({}): o disparo falhou", qual, e);
+            pendentes.put(qual, hoje);
             alerta.falhou(qual, e);
         }
     }

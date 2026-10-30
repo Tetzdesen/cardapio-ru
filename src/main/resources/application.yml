@@ -88,6 +88,13 @@ agenda:
   desjejum: "0 40 5 * * MON-FRI"
   almoco: "0 30 10 * * MON-SAT"
   jantar: "0 30 16 * * MON-FRI"
+  # Tenta de novo o anuncio que falhou, ate o prazo da refeicao: depois disso o
+  # RU ja esta fechando e anunciar nao serve a ninguem.
+  recuperacao: "0 */10 5-19 * * MON-SAT"
+  prazo:
+    desjejum: "07:30"
+    almoco: "13:00"
+    jantar: "19:00"
   # Reconfere o site e reanuncia so o que ja foi anunciado e mudou depois.
   vigia: "0 */20 6-19 * * MON-FRI"
   # O Render injeta RENDER_EXTERNAL_URL. Abaixo dos 15 minutos que ele espera
