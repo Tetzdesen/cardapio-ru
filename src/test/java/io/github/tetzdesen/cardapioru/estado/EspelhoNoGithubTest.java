@@ -1,6 +1,7 @@
 package io.github.tetzdesen.cardapioru.estado;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +9,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.github.tetzdesen.cardapioru.config.CardapioProperties;
 import io.github.tetzdesen.cardapioru.config.EstadoGithubProperties;
 import io.github.tetzdesen.cardapioru.config.EstadoProperties;
+import io.github.tetzdesen.cardapioru.erro.EstadoIndisponivel;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -102,7 +104,9 @@ class EspelhoNoGithubTest {
     @Test
     void oEstadoSobreviveAoReinicio() {
         ArquivoDeEstado antes = processo("antes.json");
-        antes.gravar(Map.of(ArquivoDeEstado.chave(DIA, "almoco"), "abc"));
+        Map<String, String> estado = antes.ler(); // como o ServicoEstado: le, depois grava
+        estado.put(ArquivoDeEstado.chave(DIA, "almoco"), "abc");
+        antes.gravar(estado);
 
         ArquivoDeEstado depois = processo("depois.json");
 
@@ -143,7 +147,10 @@ class EspelhoNoGithubTest {
         foraDoAr = true;
         ArquivoDeEstado arquivo = processo("disco.json");
 
-        arquivo.gravar(Map.of(ArquivoDeEstado.chave(DIA, "almoco"), "abc"));
+        // grava no disco, mas falha alto: um token quebrado nao pode passar calado
+        assertThatThrownBy(() ->
+                arquivo.gravar(Map.of(ArquivoDeEstado.chave(DIA, "almoco"), "abc")))
+                .isInstanceOf(EstadoIndisponivel.class);
 
         assertThat(gravacoes).isEmpty();
         assertThat(Files.readString(pasta.resolve("disco.json"))).contains("almoco");
@@ -155,5 +162,22 @@ class EspelhoNoGithubTest {
         arquivo.gravar(estado);
 
         assertThat(remoto).contains("desjejum", "almoco", "jantar");
+    }
+
+    @Test
+    void githubQueVoltaNoMeioDaGravacaoNaoPerdeOQueEstaNoRamo() {
+        remoto = "{\n  \"2026-10-30|desjejum\": \"x\"\n}\n";
+        foraDoAr = true;
+        ArquivoDeEstado arquivo = processo("disco.json");
+        Map<String, String> estado = arquivo.ler(); // lido sem o GitHub
+        estado.put(ArquivoDeEstado.chave(DIA, "almoco"), "abc");
+
+        foraDoAr = false; // volta entre a leitura e a gravacao
+        assertThatThrownBy(() -> arquivo.gravar(estado))
+                .isInstanceOf(EstadoIndisponivel.class);
+
+        assertThat(gravacoes).as("o ramo nao e sobrescrito por um mapa que nao o leu")
+                .isEmpty();
+        assertThat(arquivo.ler()).containsKeys("2026-10-30|desjejum", "2026-10-30|almoco");
     }
 }

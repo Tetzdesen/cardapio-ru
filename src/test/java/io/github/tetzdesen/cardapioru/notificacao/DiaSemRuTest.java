@@ -150,6 +150,20 @@ class DiaSemRuTest {
     }
 
     @Test
+    void vigiaNaoRepeteOAvisoDeRefeicaoFechadaQueMudou() {
+        // jantar de segunda ja anunciado, com outro conteudo, e fechado pelo aviso
+        LocalDate segunda = LocalDate.of(2026, 10, 26);
+        var estado = arquivo.ler();
+        estado.put(ArquivoDeEstado.chave(segunda, "jantar"), "assinatura-de-antes");
+        arquivo.gravar(estado);
+
+        servico.disparar(segunda, List.of(), "alegre", true, true);
+        servico.disparar(segunda, List.of(), "alegre", true, true);
+
+        verify(telegram, never()).enviar(any());
+    }
+
+    @Test
     void refeicaoFechadaNumDiaComRuViraAvisoCurto() {
         // segunda 26/10: jantar sem atendimento, almoco reduzido
         LocalDate segunda = LocalDate.of(2026, 10, 26);

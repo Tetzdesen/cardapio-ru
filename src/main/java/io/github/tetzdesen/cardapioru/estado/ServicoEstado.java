@@ -99,7 +99,19 @@ public class ServicoEstado {
      * @throws EstadoIndisponivel se o arquivo nao puder ser gravado
      */
     public void registrar(LocalDate data, String canal, Collection<Classificacao> confirmadas) {
-        if (confirmadas.isEmpty()) {
+        registrar(data, canal, confirmadas, Map.of());
+    }
+
+    /**
+     * Grava as refeicoes e os avisos de dia sem RU que o canal confirmou, numa
+     * gravacao so. Em duas, a falha da primeira deixaria o dia sem RU sem
+     * registro, e ele voltaria ao grupo a cada anuncio.
+     *
+     * @throws EstadoIndisponivel se o arquivo nao puder ser gravado
+     */
+    public void registrar(LocalDate data, String canal, Collection<Classificacao> confirmadas,
+            Map<LocalDate, AvisoSemRu> semRu) {
+        if (confirmadas.isEmpty() && semRu.isEmpty()) {
             return;
         }
         Map<String, String> estado = arquivo.ler();
@@ -107,8 +119,12 @@ public class ServicoEstado {
             estado.put(ArquivoDeEstado.chave(data, c.refeicaoNormalizada(), canal),
                     c.assinatura());
         }
+        semRu.forEach((dia, aviso) -> estado.put(
+                ArquivoDeEstado.chave(dia, ArquivoDeEstado.SEM_RU, canal),
+                aviso.name().toLowerCase(Locale.ROOT)));
         arquivo.gravar(estado);
-        log.info("estado: {} entrada(s) gravada(s) em {}", confirmadas.size(), arquivo.caminho());
+        log.info("estado: {} refeicao(oes) e {} dia(s) sem RU gravado(s) em {}",
+                confirmadas.size(), semRu.size(), arquivo.caminho());
     }
 
     /** Ate onde o dia sem RU ja foi avisado ao canal; nulo se nunca foi. */
@@ -122,22 +138,5 @@ public class ServicoEstado {
         } catch (IllegalArgumentException e) {
             return null; // valor que nao entende: avisa de novo
         }
-    }
-
-    /**
-     * Grava os avisos de dia sem RU que o canal confirmou.
-     *
-     * @throws EstadoIndisponivel se o arquivo nao puder ser gravado
-     */
-    public void registrarSemRu(String canal, Map<LocalDate, AvisoSemRu> avisados) {
-        if (avisados.isEmpty()) {
-            return;
-        }
-        Map<String, String> estado = arquivo.ler();
-        avisados.forEach((dia, aviso) -> estado.put(
-                ArquivoDeEstado.chave(dia, ArquivoDeEstado.SEM_RU, canal),
-                aviso.name().toLowerCase(Locale.ROOT)));
-        arquivo.gravar(estado);
-        log.info("estado: {} dia(s) sem RU gravado(s) em {}", avisados.size(), arquivo.caminho());
     }
 }

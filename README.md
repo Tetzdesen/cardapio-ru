@@ -296,8 +296,11 @@ um commit nesse ramo (`estado: cardápio anunciado`).
 
 - Não é o `main` de propósito: commit no `main` é deploy no Render, e um deploy por
   anúncio reiniciaria o serviço.
-- Se o GitHub falhar, o disco continua valendo e a gravação seguinte leva tudo junto —
-  sem sobrescrever o ramo com um disco que não o leu.
+- Se o GitHub falhar, o disco continua valendo e a próxima gravação que o alcançar leva
+  tudo junto — sem sobrescrever o ramo com um disco que não o leu. A falha não passa
+  calada: o disparo termina com erro e vai ao chat de alerta, para um token quebrado não
+  deixar o espelho parado sem ninguém saber.
+- Cada envio grava as refeições e os dias sem RU de uma vez só: um commit por envio.
 - No log da partida, a aplicação diz onde o estado está (`estado espelhado em ...`).
 
 Fora do Render, sem o token, o estado vive só no disco; na imagem Docker, monte um volume

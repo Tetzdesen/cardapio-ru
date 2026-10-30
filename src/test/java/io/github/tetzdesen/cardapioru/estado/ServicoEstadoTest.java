@@ -146,6 +146,26 @@ class ServicoEstadoTest {
     }
 
     @Test
+    void refeicaoEDiaSemRuVaoNumaGravacaoSo() {
+        // em duas, a falha da primeira deixaria o dia sem RU sem registro, e ele
+        // voltaria ao grupo a cada anuncio
+        ArquivoDeEstado espiao = org.mockito.Mockito.spy(arquivo);
+        ServicoEstado comEspiao = new ServicoEstado(espiao);
+        BlocoRefeicao almoco = bloco("Almoço", "Alface");
+        LocalDate amanha = DIA.plusDays(1);
+
+        comEspiao.registrar(DIA, Canal.TELEGRAM,
+                comEspiao.classificar(DIA, Canal.TELEGRAM, List.of(almoco)),
+                Map.of(amanha, ServicoEstado.AvisoSemRu.ANTES));
+
+        org.mockito.Mockito.verify(espiao, org.mockito.Mockito.times(1))
+                .gravar(org.mockito.ArgumentMatchers.any());
+        assertThat(comEspiao.avisoSemRu(amanha, Canal.TELEGRAM))
+                .isEqualTo(ServicoEstado.AvisoSemRu.ANTES);
+        assertThat(arquivo.ler()).containsKey(ArquivoDeEstado.chave(DIA, "almoco"));
+    }
+
+    @Test
     void registrarNadaNaoCriaArquivo() {
         servico.registrar(DIA, Canal.TELEGRAM, List.of());
 

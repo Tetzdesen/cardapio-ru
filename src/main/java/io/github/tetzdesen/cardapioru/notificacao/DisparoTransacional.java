@@ -169,7 +169,9 @@ public class DisparoTransacional {
             }
             fechadas.add(c);
             omitidas.add(c.bloco().refeicao());
-            if (!diaSemRu) {
+            // a vigia nao avisa: a refeicao fechada nao e gravada, e ela repetiria
+            // o aviso a cada rodada enquanto o cardapio contar como alterado
+            if (!diaSemRu && !soAlteracoes) {
                 pecas.add(Peca.avulsa(Formatador.semRefeicao(c.bloco(), horario)));
             }
         }
@@ -260,8 +262,7 @@ public class DisparoTransacional {
                 semRuAvisados.put(dia, aviso);
             }
         });
-        estado.registrar(data, canal.nome(), gravaveis);
-        estado.registrarSemRu(canal.nome(), semRuAvisados);
+        estado.registrar(data, canal.nome(), gravaveis, semRuAvisados);
     }
 
     static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso,

@@ -122,7 +122,7 @@ class DisparoEndpointTest {
                     .toList();
         });
         willThrow(new EstadoIndisponivel("nao foi possivel gravar o estado", null))
-                .given(estado).registrar(any(), any(), any());
+                .given(estado).registrar(any(), any(), any(), any());
 
         // a mensagem ja chegou ao grupo: o 503 e o que deixa a inconsistencia
         // visivel a quem chamou, em vez de fazer o disparo seguinte ficar mudo

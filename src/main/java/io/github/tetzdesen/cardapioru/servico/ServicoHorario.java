@@ -79,8 +79,12 @@ public class ServicoHorario {
                 && Duration.ofNanos(System.nanoTime() - lidoEm).compareTo(VALIDADE) < 0) {
             return excecoes;
         }
-        excecoes = lerAvisos();
-        lidoEm = System.nanoTime();
+        List<Excecao> lidas = lerAvisos();
+        if (lidas != null) {
+            excecoes = lidas;
+            lidoEm = System.nanoTime();
+        }
+        // na falha, valem as ultimas lidas, e a proxima consulta tenta de novo
         return excecoes;
     }
 
@@ -105,8 +109,9 @@ public class ServicoHorario {
                 }
             }
         } catch (RuntimeException e) {
-            log.warn("nao foi possivel ler os avisos de horario; vale o regular: {}",
+            log.warn("nao foi possivel ler os avisos de horario; valem os ultimos lidos: {}",
                     e.getMessage());
+            return null;
         }
         return List.copyOf(lidas);
     }

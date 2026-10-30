@@ -154,6 +154,30 @@ class HorariosTest {
     }
 
     @Test
+    void intervaloFechaTodosOsDiasDeDentro() {
+        assertThat(LeitorDeAvisos.doTextoCorrido(
+                "Durante o recesso, de 22/12 a 02/01/2027, não haverá atendimento.", 2026))
+                .extracting(Excecao::dia)
+                .hasSize(12)
+                .contains(LocalDate.of(2026, 12, 22), LocalDate.of(2026, 12, 31),
+                        LocalDate.of(2027, 1, 2));
+        assertThat(LeitorDeAvisos.doTextoCorrido(
+                "Não haverá atendimento entre os dias 23 e 26 de outubro.", 2026))
+                .extracting(Excecao::dia)
+                .containsExactlyInAnyOrder(LocalDate.of(2026, 10, 23), LocalDate.of(2026, 10, 24),
+                        LocalDate.of(2026, 10, 25), LocalDate.of(2026, 10, 26));
+    }
+
+    @Test
+    void listaComEContinuaSendoLista() {
+        // sem "entre", "30 e 31" sao dois dias, nao um intervalo
+        assertThat(LeitorDeAvisos.doTextoCorrido(
+                "Nos dias 3 e 6 de novembro não haverá atendimento.", 2026))
+                .extracting(Excecao::dia)
+                .containsExactlyInAnyOrder(LocalDate.of(2026, 11, 3), LocalDate.of(2026, 11, 6));
+    }
+
+    @Test
     void avisoNaoMexeEmDiaQueEleNaoCita() {
         assertThat(doAviso()).allMatch(e -> !e.dia().isBefore(SEXTA) && !e.dia().isAfter(SEGUNDA));
     }

@@ -216,7 +216,8 @@ public class ArquivoDeEstado {
      * sem escapar acentos, com quebra de linha no fim.
      */
     public void gravar(Map<String, String> estado) {
-        sincronizar();
+        // sem sincronizar aqui: o mapa recebido foi lido antes, e trazer o GitHub
+        // agora faria a gravacao abaixo apagar do ramo o que acabou de chegar
         String limite = LocalDate.now(relogio).minusDays(retencaoDias).toString();
         Map<String, String> podado = new TreeMap<>();
         for (Map.Entry<String, String> e : estado.entrySet()) {
@@ -237,10 +238,10 @@ public class ArquivoDeEstado {
         }
         if (!sincronizado) {
             // mandar agora sobrescreveria o que esta la com um disco que nao o
-            // leu; fica no disco, e a proxima gravacao que conseguir ler leva junto
-            log.warn("estado: gravado so no disco; {} fica para a proxima gravacao",
-                    espelho.descricao());
-            return;
+            // leu. Fica no disco, e a proxima leitura que alcancar o GitHub junta
+            // os dois; a falha sobe para nao ficar parada sem ninguem saber.
+            throw new EstadoIndisponivel("estado gravado so no disco: "
+                    + espelho.descricao() + " ainda nao pode ser lido", null);
         }
         espelho.enviar(texto);
     }
