@@ -46,7 +46,7 @@ Spring Boot 3.5 · Java 21.
 ## Como funciona
 
 ```
-            agenda (05h40, 10h30, 16h30) e vigia (a cada 20 min)
+            agenda (05h40, 10h00, 16h00) e vigia (a cada 20 min)
                                   │
                                   ▼
  site do RU ──► cardápio do dia ──┐
@@ -77,8 +77,8 @@ O anúncio sai no fuso `America/Sao_Paulo` (`agenda.*` em `application.yml`):
 | horário | dias | o que faz |
 |---|---|---|
 | **05h40** | seg–sex | anuncia o desjejum |
-| **10h30** | seg–sáb | anuncia o almoço (sábado só tem almoço) |
-| **16h30** | seg–sex | anuncia o jantar |
+| **10h00** | seg–sáb | anuncia o almoço (sábado só tem almoço) |
+| **16h00** | seg–sex | anuncia o jantar |
 | a cada 20 min, 6h–19h59 | seg–sex | **vigia**: reanuncia o que mudou |
 | a cada 10 min, 5h–19h59 | seg–sáb | **recuperação**: tenta de novo o anúncio que falhou |
 
