@@ -87,7 +87,7 @@ agenda:
   # tem almoco, e o site publica o cardapio dele.
   desjejum: "0 40 5 * * MON-FRI"
   almoco: "0 0 10 * * MON-SAT"
-  jantar: "0 50 16 * * MON-FRI"
+  jantar: "0 0 16 * * MON-FRI"
   # Tenta de novo o anuncio que falhou, ate o prazo da refeicao: depois disso o
   # RU ja esta fechando e anunciar nao serve a ninguem.
   recuperacao: "0 */10 5-19 * * MON-SAT"
