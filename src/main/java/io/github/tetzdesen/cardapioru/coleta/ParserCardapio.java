@@ -65,7 +65,8 @@ public class ParserCardapio {
                 }
                 viuCabecalho = true;
                 refeicao = cabecalho.group("refeicao").strip();
-                campus = cabecalho.group("campus").strip();
+                String comFecho = cabecalho.group("campus");
+                campus = (comFecho != null ? comFecho : cabecalho.group("campusSemFecho")).strip();
                 data = cabecalho.group("data").strip();
                 secoes = new ArrayList<>();
                 // o site quebra o cabecalho em duas linhas: a data vem na seguinte

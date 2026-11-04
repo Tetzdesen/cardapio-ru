@@ -92,6 +92,34 @@ class ParserCardapioTest {
     }
 
     @Test
+    void tituloSemOParenteseDeFechamentoAindaEReconhecido() {
+        Analise analise = parser.analisar(Fixtures.ler(Fixtures.SEM_PARENTESE));
+
+        assertThat(analise.blocos().stream().map(BlocoRefeicao::refeicao))
+                .containsExactly("Desjejum", "Almoço", "Jantar");
+
+        BlocoRefeicao jantar = analise.blocos().get(2);
+        assertThat(jantar.campus()).isEqualTo("Alegre e Jerônimo Monteiro");
+        assertThat(jantar.data()).isEqualTo("quarta-feira, 04 de Novembro de 2026");
+        assertThat(jantar.secoes().stream().map(Secao::rotulo))
+                .containsExactly("Entrada", "Prato Proteico", "Opção", "Acompanhamento",
+                        "Guarnição", "Sobremesa", "Suco");
+        assertThat(jantar.secoes().get(1).itens()).containsExactly("Isca de Carne Acebolada");
+    }
+
+    @Test
+    void hifenNoCampusNaoCortaOTituloComParentese() {
+        String html = """
+                <div id="content-core"><p>Almoço 04/11 (Alegre - Sede) - quarta-feira, 04 de \
+                Novembro de 2026</p><p><strong>Entrada</strong></p><p>Alface</p></div>""";
+
+        BlocoRefeicao almoco = parser.analisar(html).blocos().get(0);
+
+        assertThat(almoco.campus()).isEqualTo("Alegre - Sede");
+        assertThat(almoco.data()).isEqualTo("quarta-feira, 04 de Novembro de 2026");
+    }
+
+    @Test
     void diaSemCardapioNaoEFalhaDeParser() {
         Analise analise = parser.analisar(Fixtures.ler(Fixtures.VAZIA));
 

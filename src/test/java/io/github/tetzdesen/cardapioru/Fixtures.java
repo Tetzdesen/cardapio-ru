@@ -13,6 +13,8 @@ public final class Fixtures {
     public static final String QUEBRADA = "pagina-quebrada.html";
     /** Segunda pagina real, capturada ao vivo em 2026-09-16 durante a virada. */
     public static final String AO_VIVO = "pagina-2026-09-16.html";
+    /** Pagina real de 2026-11-04: o titulo do jantar saiu sem o ")" depois do campus. */
+    public static final String SEM_PARENTESE = "pagina-sem-parentese-2026-11-04.html";
     /**
      * Data que o site nunca publicou (domingo 2026-09-20): a moldura institucional
      * do Plone, sem cabecalho de refeicao e sem dizer que nao ha cardapio.

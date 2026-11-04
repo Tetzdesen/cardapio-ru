@@ -84,6 +84,16 @@ class DisparoTest {
     }
 
     @Test
+    void jantarComTituloSemParenteseEEnviadoEGravado() {
+        given(coletor.baixar(any())).willReturn(Fixtures.ler(Fixtures.SEM_PARENTESE));
+
+        DisparoResposta r = servico.disparar(DIA, List.of("jantar"), "alegre", true);
+
+        assertThat(r.enviadas()).containsExactly("Jantar");
+        assertThat(arquivo.ler()).containsKey(ArquivoDeEstado.chave(DIA, "jantar"));
+    }
+
+    @Test
     void disparoSeguinteSemAlteracaoNaoEnviaNada() {
         servico.disparar(DIA, List.of(), "alegre", true);
 

@@ -85,7 +85,9 @@ public final class Vocabulario {
     public static final Pattern CABECALHO = Pattern.compile(
             "^(?<refeicao>" + String.join("|", REFEICOES) + ")"
                     + "(?:\\s+\\d{2}/\\d{2})?\\s*"          // "Almoço 10/09" (as vezes tem a data)
-                    + "\\((?<campus>[^)]*)\\)\\s*[-–—]\\s*" // "(Alegre e Jerônimo Monteiro) - "
+                    // "(Alegre e Jerônimo Monteiro) - ". O site ja esqueceu o ")" (04/11/2026).
+                    // A forma com ")" vem primeiro para o hifen dentro dela nao cortar o campus.
+                    + "\\((?:(?<campus>[^)]*)\\)|(?<campusSemFecho>[^)]*?))\\s*[-–—]\\s*"
                     + "(?<data>.*)$",                       // data aqui OU na proxima linha
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
