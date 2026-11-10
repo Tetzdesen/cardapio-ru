@@ -46,7 +46,7 @@ Spring Boot 3.5 · Java 21.
 ## Como funciona
 
 ```
-            agenda (05h40, 10h00, 16h00) e vigia (a cada 20 min)
+              agenda (05h40) e vigia (a cada 20 min)
                                   │
                                   ▼
  site do RU ──► cardápio do dia ──┐
@@ -76,27 +76,24 @@ O anúncio sai no fuso `America/Sao_Paulo` (`agenda.*` em `application.yml`):
 
 | horário | dias | o que faz |
 |---|---|---|
-| **05h40** | seg–sex | anuncia o desjejum |
-| **10h00** | seg–sáb | anuncia o almoço (sábado só tem almoço) |
-| **16h00** | seg–sex | anuncia o jantar |
-| a cada 20 min, 6h–19h59 | seg–sex | **vigia**: reanuncia o que mudou |
+| **05h40** | seg–sáb | anuncia o cardápio do dia inteiro (sábado só tem almoço) |
+| a cada 20 min, 6h–19h59 | seg–sáb | **vigia**: reanuncia o que mudou |
 | a cada 10 min, 5h–19h59 | seg–sáb | **recuperação**: tenta de novo o anúncio que falhou |
 
-Cada refeição chega numa mensagem própria, um pouco antes de o RU abrir para ela: quem lê
-o aviso do jantar de manhã já esqueceu quando chega a hora. Todos os disparos da agenda
-pedem o campus `alegre`.
+O dia inteiro chega numa mensagem só, cedo, na hora em que quem vai ao RU está acordando.
+As correções que o site faz depois ficam com a vigia. Todos os disparos da agenda pedem o
+campus `alegre`.
 
 A **recuperação** tenta de novo, a cada 10 minutos, o anúncio que falhou (site da UFES
-fora do ar, canal recusando), até o prazo da refeição — desjejum 07h30, almoço 13h00,
-jantar 19h00 (`agenda.prazo.*`). Depois disso o RU já está fechando e anunciar não serve a
-ninguém. Repetir é seguro: o estado garante que o canal que já recebeu não recebe de
+fora do ar, canal recusando), pedindo só as refeições ainda no prazo — desjejum 07h30,
+almoço 13h00, jantar 19h00 (`agenda.prazo.*`). Depois do prazo o RU já está fechando e
+anunciar não serve a ninguém; passado o do jantar, ela desiste e avisa. Repetir é seguro: o estado garante que o canal que já recebeu não recebe de
 novo. Só entra o que falhou no processo que está no ar; o anúncio que nem chegou a rodar,
 porque o serviço reiniciava na hora exata, fica de fora.
 
-A **vigia** reconfere o site entre um anúncio e outro. Se uma refeição que já foi para o
-grupo mudar depois, ela volta com "⚠️ O cardápio mudou desde o último aviso." A que ainda
-não foi anunciada fica para o seu horário: a vigia não antecipa nada e, em dia sem
-cardápio, fica quieta.
+A **vigia** reconfere o site ao longo do dia. Se uma refeição que já foi para o grupo mudar
+depois, ela volta com "⚠️ O cardápio mudou desde o último aviso." A vigia não antecipa
+nada que ainda não foi anunciado e, em dia sem cardápio, fica quieta.
 
 ### Horário de funcionamento
 

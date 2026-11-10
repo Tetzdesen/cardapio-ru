@@ -59,12 +59,14 @@ class AgendadorTest {
             "", Map.of("desjejum", LocalTime.of(7, 30), "almoco", LocalTime.of(13, 0),
                     "jantar", LocalTime.of(19, 0)));
 
-    private void almocoFalha() {
+    private static final String ANUNCIO = "cardapio do dia";
+
+    private void siteFora() {
         given(notificacao.disparar(any(), any(), anyString(), anyBoolean())).willThrow(
                 new FalhaDeOrigem(FalhaDeOrigem.Causa.ORIGEM_INACESSIVEL, "site fora"));
     }
 
-    private void almocoVolta() {
+    private void siteVolta() {
         org.mockito.BDDMockito.willReturn(new DisparoResposta(HOJE, true, List.of("Almoço"),
                 List.of(), List.of(), List.of(), List.of()))
                 .given(notificacao).disparar(any(), any(), anyString(), anyBoolean());
@@ -82,24 +84,10 @@ class AgendadorTest {
     }
 
     @Test
-    void desjejumPedeOsDoisNomesDoCafeDeAlegreEmSilencioSeVazio() {
-        agendador.desjejum();
+    void anuncioPedeODiaInteiroEmSilencioSeVazio() {
+        agendador.anunciar();
 
-        verify(notificacao).disparar(HOJE, List.of("Desjejum", "Café da Manhã"), "alegre", true);
-    }
-
-    @Test
-    void almocoPedeSoOAlmoco() {
-        agendador.almoco();
-
-        verify(notificacao).disparar(eq(HOJE), eq(List.of("almoco")), eq("alegre"), eq(true));
-    }
-
-    @Test
-    void jantarPedeSoOJantar() {
-        agendador.jantar();
-
-        verify(notificacao).disparar(eq(HOJE), eq(List.of("jantar")), eq("alegre"), eq(true));
+        verify(notificacao).disparar(HOJE, List.of(), "alegre", true);
     }
 
     @Test
@@ -120,48 +108,59 @@ class AgendadorTest {
     @Test
     void falhaDoDisparoNaoDerrubaOAgendador() {
         // uma excecao que escapa aqui so vai para o log do scheduler; a nossa diz qual foi
-        given(notificacao.disparar(any(), any(), anyString(), anyBoolean())).willThrow(
-                new FalhaDeOrigem(FalhaDeOrigem.Causa.ORIGEM_INACESSIVEL, "site fora"));
+        siteFora();
 
-        assertThatCode(agendador::desjejum).doesNotThrowAnyException();
-        verify(alerta).falhou(eq("desjejum"), any(FalhaDeOrigem.class));
+        assertThatCode(agendador::anunciar).doesNotThrowAnyException();
+        verify(alerta).falhou(eq(ANUNCIO), any(FalhaDeOrigem.class));
     }
 
     @Test
     void anuncioQueFalhouETentadoDeNovoAteSair() {
-        almocoFalha();
-        agendador.almoco();
+        agora = LocalTime.of(5, 40);
+        siteFora();
+        agendador.anunciar();
 
-        agora = LocalTime.of(10, 40);
+        agora = LocalTime.of(5, 50);
         agendador.recuperar(); // o site continua fora
-        almocoVolta();
-        agora = LocalTime.of(10, 50);
+        siteVolta();
+        agora = LocalTime.of(6, 0);
         agendador.recuperar();
-        agora = LocalTime.of(11, 0);
+        agora = LocalTime.of(6, 10);
         agendador.recuperar(); // ja saiu: nao tenta mais
 
-        verify(notificacao, times(3)).disparar(eq(HOJE), eq(List.of("almoco")), eq("alegre"),
-                eq(true));
-        verify(alerta).recuperou("almoco");
+        verify(notificacao, times(3)).disparar(HOJE, List.of(), "alegre", true);
+        verify(alerta).recuperou(ANUNCIO);
         verify(alerta, never()).desistiu(anyString());
     }
 
     @Test
-    void passadoOPrazoDesisteEAvisa() {
-        almocoFalha();
-        agendador.almoco();
+    void novaTentativaDeixaDeForaARefeicaoQueJaPassouDoPrazo() {
+        siteFora();
+        agendador.anunciar();
+        siteVolta();
 
-        agora = LocalTime.of(13, 0);
+        agora = LocalTime.of(10, 30); // desjejum ja passou
+        agendador.recuperar();
+
+        verify(notificacao).disparar(HOJE, List.of("almoco", "jantar"), "alegre", true);
+    }
+
+    @Test
+    void depoisDoUltimoPrazoDesisteEAvisa() {
+        siteFora();
+        agendador.anunciar();
+
+        agora = LocalTime.of(19, 0);
         agendador.recuperar();
         agendador.recuperar();
 
         verify(notificacao, times(1)).disparar(any(), any(), anyString(), anyBoolean());
-        verify(alerta, times(1)).desistiu("almoco");
+        verify(alerta, times(1)).desistiu(ANUNCIO);
     }
 
     @Test
     void anuncioQueSaiuNaoETentadoDeNovo() {
-        agendador.almoco();
+        agendador.anunciar();
         agora = LocalTime.of(10, 40);
 
         agendador.recuperar();
@@ -172,9 +171,9 @@ class AgendadorTest {
 
     @Test
     void falhaDeOntemNaoETentadaHoje() {
-        almocoFalha();
+        siteFora();
         given(cardapio.hoje()).willReturn(HOJE.minusDays(1));
-        agendador.almoco();
+        agendador.anunciar();
 
         given(cardapio.hoje()).willReturn(HOJE);
         agendador.recuperar();
