@@ -1,14 +1,30 @@
 # Cardápio do RU — UFES Alegre
 
-Bot que lê o cardápio do Restaurante Universitário em
-`https://restaurante.alegre.ufes.br/cardapio` e anuncia cada refeição num grupo do
-Telegram e, se configurado, num grupo de WhatsApp — com o horário da unidade, o aviso
-quando o cardápio muda e o aviso dos dias em que não vai ter RU.
+[![CI](https://github.com/Tetzdesen/cardapio-ru/actions/workflows/ci.yml/badge.svg)](https://github.com/Tetzdesen/cardapio-ru/actions/workflows/ci.yml)
+![Java 21](https://img.shields.io/badge/Java-21-orange)
+![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6db33f)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+
+*[English summary](README.en.md)*
+
+Todo dia, quem come no Restaurante Universitário da UFES em Alegre precisava abrir o site
+para saber o cardápio e descobrir, às vezes tarde demais, que o RU ia fechar mais cedo.
+Este bot faz isso sozinho: lê o cardápio em `https://restaurante.alegre.ufes.br/cardapio`
+e anuncia cada refeição num grupo do Telegram e, se configurado, num grupo de WhatsApp —
+com o horário da unidade, o aviso quando o cardápio muda e o aviso dos dias em que não vai
+ter RU.
 
 Roda como uma API Spring Boot no [Render](https://render.com), plano grátis, com o
-agendador dentro da própria aplicação. **Sem banco e sem agendador externo.**
+agendador dentro da própria aplicação. **Sem banco e sem agendador externo.** A mesma API
+serve uma [página do cardápio](https://cardapio-ru-x6zv.onrender.com/).
 
-Spring Boot 3.5 · Java 21.
+Spring Boot 3.5 · Java 21 · jsoup · 230 testes contra páginas reais do site.
+
+<p align="center">
+  <img src="docs/pagina.png" alt="Página do cardápio com desjejum, almoço e jantar do dia" width="820">
+</p>
+
+A mensagem que vai ao grupo:
 
 ```
 🚫 *Amanhã não vai ter RU* — sábado, 24/10
@@ -27,8 +43,35 @@ Spring Boot 3.5 · Java 21.
 🔗 ver no site: https://restaurante.alegre.ufes.br/cardapio/2026-10-23
 ```
 
+## Destaques técnicos
+
+- **Scraping que aguenta site instável.** O site é um Plone da UFES, sem API e com marcação
+  que muda sem aviso. O parser não depende de classes CSS: acha os cabeçalhos por regex,
+  tolera variações reais (como o título sem o parêntese de fechamento) e, diante de um
+  rótulo desconhecido, avisa e publica a seção assim mesmo em vez de perder conteúdo.
+- **Linguagem natural dos avisos.** Horário reduzido e dia fechado chegam como notícia, ora
+  em lista por unidade e dia, ora em texto corrido ("nos dias 30 (sexta-feira) e 31 de
+  outubro (sábado) não haverá atendimento"). O leitor entende os dois formatos e, quando
+  não entende, cai no horário regular sem segurar o cardápio.
+- **Envio sem duplicata.** Cada refeição tem uma assinatura; o estado grava só o que cada
+  canal confirmou. Repetir um disparo é seguro, uma refeição alterada volta com aviso de
+  mudança, e uma falha num canal não reenvia ao outro.
+- **Infra de custo zero.** Sem banco: o estado é um arquivo espelhado num ramo do próprio
+  repositório pela API do GitHub, para sobreviver ao disco efêmero do Render. O agendador
+  roda dentro da API e a mantém acordada.
+- **Resiliência.** Retry com backoff exponencial dentro de um orçamento de tempo, só para
+  falhas passageiras; recuperação a cada 10 min do anúncio que falhou, até o prazo da
+  refeição; alerta de falha num chat separado.
+- **TLS sem atalho.** O servidor da UFES não envia o certificado intermediário da
+  RNP/ICPEdu. Em vez de desligar a verificação, a aplicação empacota o intermediário e
+  completa a cadeia — e um teste garante que a verificação nunca é desligada.
+- **Testes contra a realidade.** 230 testes, nenhum toca a rede: rodam contra páginas e
+  avisos reais congelados como fixtures, e uma referência byte a byte prova que o porte do
+  bot original em Python para Java não mudou nenhuma mensagem.
+
 ## Sumário
 
+- [Destaques técnicos](#destaques-técnicos)
 - [Como funciona](#como-funciona)
 - [O que vai ao grupo](#o-que-vai-ao-grupo)
 - [Canais](#canais)
@@ -42,20 +85,13 @@ Spring Boot 3.5 · Java 21.
 - [Testes](#testes)
 - [Se o parser quebrar](#se-o-parser-quebrar)
 - [Cuidados](#cuidados)
+- [Licença](#licença)
 
 ## Como funciona
 
-```
-              agenda (05h40) e vigia (a cada 20 min)
-                                  │
-                                  ▼
- site do RU ──► cardápio do dia ──┐
- (Plone/UFES)                     ├─► o que é novidade? ──► Telegram / WhatsApp
- página inicial ──► avisos ───────┘   (estado de envio)          │
-  (horário especial, dia fechado)            ▲                   │
-                                             └── grava o que ────┘
-                                                 o canal confirmou
-```
+<p align="center">
+  <img src="docs/arquitetura.svg" alt="Arquitetura: o site e as notícias do RU passam pela coleta e pelo leitor de avisos; o agendador dispara; o estado decide o que é novidade e o envio vai ao Telegram e ao WhatsApp" width="900">
+</p>
 
 1. **Coleta.** Baixa a página do cardápio da data e extrai as refeições, cada uma com as
    suas seções (entrada, prato proteico, sobremesa...). Baixa também as notícias da
@@ -579,3 +615,7 @@ primeira consulta que falhar.
 
 A comparação do `API_TOKEN` é em tempo constante, e uma credencial recusada vai ao log
 sem o valor apresentado.
+
+## Licença
+
+[MIT](LICENSE).
