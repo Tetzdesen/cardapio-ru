@@ -65,7 +65,7 @@ java -jar target/cardapio-ru-*.jar --print                       # print today's
 java -jar target/cardapio-ru-*.jar --spring.profiles.active=web  # start the API on :8080
 ```
 
-See the [Portuguese README](README.md#variáveis-de-ambiente) for the environment
+See the [deployment guide (Portuguese)](docs/deploy.md#variáveis-de-ambiente) for the environment
 variables (Telegram, WhatsApp via WAHA, API token, state mirroring).
 
 ## License
