@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cardápio do RU</title>
 <meta name="description" content="Cardápio do dia do Restaurante Universitário da UFES Alegre">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d6efd'/><text x='16' y='21' font-family='system-ui,sans-serif' font-size='13' font-weight='700' fill='%23fff' text-anchor='middle'>RU</text></svg>">
+<meta name="theme-color" content="#f5f6f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23d6452b'/><text x='16' y='21.5' font-family='system-ui,sans-serif' font-size='13' font-weight='800' fill='%23fff' text-anchor='middle'>RU</text></svg>">
 <script>
   // Antes de pintar: sem isso a pagina pisca no tema errado ao carregar
   (function () {
@@ -14,56 +16,227 @@
     if (tema !== "claro" && tema !== "escuro") {
       tema = matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
     }
-    document.documentElement.dataset.bsTheme = tema === "escuro" ? "dark" : "light";
+    document.documentElement.dataset.tema = tema;
   })();
 </script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-      integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap">
 <style>
-  .selo { cursor: help; text-decoration: none; }
-  .icone { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; font-size: 1.25rem; }
+  :root {
+    --fundo: #f5f6f2;
+    --superficie: #ffffff;
+    --tinta: #1b211f;
+    --tinta-suave: #56605b;
+    --linha: #e2e5df;
+    --foco: #1b211f;
+    --alerta: #9a5b00;
+    --perigo: #b42318;
+
+    /* cada refeicao tem a cor da sua hora do dia */
+    --desjejum: #c47f00;  --desjejum-fundo: #fdf3dc;
+    --almoco:   #d6452b;  --almoco-fundo:   #fdebe6;
+    --jantar:   #3b5ba5;  --jantar-fundo:   #e8edf8;
+
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --texto: "Instrument Sans", system-ui, sans-serif;
+    --raio: 14px;
+    color-scheme: light;
+  }
+  :root[data-tema="escuro"] {
+    --fundo: #121614;
+    --superficie: #1b201e;
+    --tinta: #e9ede9;
+    --tinta-suave: #a3ada7;
+    --linha: #2c3330;
+    --foco: #e9ede9;
+    --alerta: #f0b44c;
+    --perigo: #ff8a7a;
+    --desjejum: #f0b44c;  --desjejum-fundo: #2e2614;
+    --almoco:   #ff7f63;  --almoco-fundo:   #33201b;
+    --jantar:   #8eaaf0;  --jantar-fundo:   #1d2436;
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--tinta);
+    font: 400 1rem/1.5 var(--texto);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+  .invisivel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .moldura { max-width: 72rem; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 640px) { .moldura { padding: 0 24px; } }
+
+  /* Topo ------------------------------------------------------------ */
+  .topo { display: flex; justify-content: space-between; align-items: center; padding-block: 16px; }
+  .marca { display: flex; align-items: center; gap: 10px; font: 700 1.05rem/1 var(--display); letter-spacing: -0.01em; }
+  .marca-selo {
+    display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
+    background: #c43a22; color: #fff; font: 800 .8rem/1 var(--display);
+  }
+  .marca small { font: 400 .95rem/1 var(--texto); color: var(--tinta-suave); }
+
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 44px; min-width: 44px; padding: 0 14px;
+    border: 1px solid var(--linha); border-radius: 999px; background: var(--superficie);
+    cursor: pointer; transition: background-color .15s, border-color .15s;
+  }
+  .botao:hover:not(:disabled) { border-color: var(--tinta-suave); }
+  .botao:disabled { opacity: .45; cursor: default; }
+  .botao svg { width: 18px; height: 18px; }
+  .botao-icone { padding: 0; }
+
+  /* Cabecalho do dia ------------------------------------------------- */
+  .dia { display: flex; flex-wrap: wrap; gap: 20px 24px; align-items: end; justify-content: space-between; padding: 24px 0 28px; }
+  .dia h1 {
+    margin: 0; font: 800 clamp(2.4rem, 7vw, 4rem)/.95 var(--display);
+    letter-spacing: -0.035em;
+  }
+  .dia p { margin: 10px 0 0; color: var(--tinta-suave); font-size: 1.05rem; }
+
+  .navegacao { display: flex; gap: 8px; align-items: center; }
+  .navegacao input[type="date"] {
+    min-height: 44px; padding: 0 12px; border: 1px solid var(--linha); border-radius: 999px;
+    background: var(--superficie); cursor: pointer;
+  }
+
+  /* Refeicoes -------------------------------------------------------- */
+  .refeicoes { display: grid; gap: 16px; align-items: start; }
+  @media (min-width: 880px) { .refeicoes { grid-template-columns: repeat(3, 1fr); gap: 20px; } }
+
+  .refeicao {
+    --cor: var(--almoco); --cor-fundo: var(--almoco-fundo);
+    background: var(--superficie); border-radius: var(--raio);
+    border: 1px solid var(--linha); overflow: hidden;
+  }
+  .refeicao[data-tipo="desjejum"] { --cor: var(--desjejum); --cor-fundo: var(--desjejum-fundo); }
+  .refeicao[data-tipo="jantar"]   { --cor: var(--jantar);   --cor-fundo: var(--jantar-fundo); }
+  .refeicao.agora { border-color: var(--cor); box-shadow: 0 0 0 1px var(--cor); }
+
+  .refeicao header { padding: 18px 20px 16px; background: var(--cor-fundo); }
+  .refeicao-titulo { display: flex; align-items: center; gap: 10px; }
+  .refeicao-titulo svg { width: 22px; height: 22px; color: var(--cor); flex: none; }
+  .refeicao h2 { margin: 0; font: 700 1.35rem/1.1 var(--display); letter-spacing: -0.015em; }
+  .situacao {
+    margin-left: auto; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700;
+    background: var(--superficie); color: var(--tinta-suave); white-space: nowrap;
+  }
+  .refeicao.agora .situacao { background: var(--tinta); color: var(--superficie); }
+  .refeicao.agora .situacao::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
+    background: var(--cor); vertical-align: .08em;
+  }
+  .horarios { margin: 8px 0 0; padding: 0; list-style: none; font-size: .9rem; color: var(--tinta-suave); }
+  .horarios .reduzido { color: var(--alerta); font-weight: 700; }
+  .horarios .fechado { color: var(--perigo); font-weight: 700; }
+
+  .pratos { padding: 18px 20px 4px; }
+  .prato + .prato { margin-top: 14px; }
+  .prato-rotulo { font-size: .85rem; color: var(--tinta-suave); }
+  .prato-nome {
+    margin: 2px 0 0; font: 700 clamp(1.3rem, 2.4vw, 1.5rem)/1.2 var(--display);
+    letter-spacing: -0.015em; text-wrap: balance;
+  }
+
+  .secoes { margin: 0; padding: 12px 20px 18px; display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; }
+  .secoes dt, .secoes dd { padding: 9px 0; border-top: 1px solid var(--linha); }
+  .secoes dt { font-size: .85rem; color: var(--tinta-suave); padding-right: 12px; padding-top: 11px; }
+  .secoes dd { margin: 0; }
+  header + .secoes > :nth-child(-n+2) { border-top: 0; }
+  .rodape .legenda { display: flex; gap: 16px; }
+  .secoes dd div + div { margin-top: 2px; }
+
+  .selo {
+    display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid var(--linha); font-size: .72rem; font-weight: 700; line-height: 1.5;
+    color: var(--tinta-suave); text-decoration: none; cursor: help; vertical-align: .12em;
+  }
+  .prato-nome .selo { vertical-align: .3em; font-family: var(--texto); letter-spacing: 0; }
+
+  /* Estados ---------------------------------------------------------- */
+  .aviso {
+    grid-column: 1 / -1; padding: 28px 24px; border-radius: var(--raio);
+    background: var(--superficie); border: 1px solid var(--linha);
+  }
+  .aviso strong { display: block; font: 700 1.25rem/1.25 var(--display); margin-bottom: 4px; }
+  .aviso p { margin: 0; color: var(--tinta-suave); }
+  .aviso[data-tom="fechado"] { border-left: 4px solid var(--perigo); }
+  .aviso[data-tom="erro"] { border-left: 4px solid var(--alerta); }
+
+  .esqueleto { height: 22rem; border-radius: var(--raio); background: var(--superficie); border: 1px solid var(--linha); position: relative; overflow: hidden; }
+  .esqueleto::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, var(--fundo), transparent);
+    animation: brilho 1.2s ease-in-out infinite; transform: translateX(-100%);
+  }
+  @keyframes brilho { to { transform: translateX(100%); } }
+
+  .rodape {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px;
+    margin-top: 28px; padding: 18px 0 32px; border-top: 1px solid var(--linha);
+    font-size: .9rem; color: var(--tinta-suave);
+  }
+  .rodape a { color: inherit; text-underline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
-<body class="bg-body-tertiary">
-<nav class="navbar bg-body border-bottom">
-  <div class="container">
-    <span class="navbar-brand fw-semibold">Cardápio do RU <small class="text-body-secondary fw-normal">· UFES</small></span>
-    <button class="btn btn-outline-secondary btn-sm" id="tema" type="button"></button>
-  </div>
-</nav>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-desjejum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/></symbol>
+    <symbol id="i-almoco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+    <symbol id="i-jantar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-anterior" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-seguinte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-escuro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-claro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  </defs>
+</svg>
 
-<main class="container py-4">
-  <header class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-    <div>
-      <h1 class="h2 mb-1" id="semana">Cardápio</h1>
-      <p class="text-body-secondary mb-0" id="data">carregando…</p>
-    </div>
-    <form class="d-flex gap-2" id="calendario">
-      <div class="input-group">
-        <button class="btn btn-outline-secondary" id="anterior" type="button" aria-label="Dia anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-        <input class="form-control" id="escolha" type="date" aria-label="Data do cardápio" required>
-        <button class="btn btn-outline-secondary" id="seguinte" type="button" aria-label="Dia seguinte"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+<div class="moldura">
+  <nav class="topo">
+    <span class="marca"><span class="marca-selo" aria-hidden="true">RU</span>Cardápio do RU <small>UFES Alegre</small></span>
+    <button class="botao botao-icone" id="tema" type="button"><svg aria-hidden="true"><use href="#i-escuro"/></svg></button>
+  </nav>
+
+  <main>
+    <header class="dia">
+      <div>
+        <h1 id="semana">Cardápio</h1>
+        <p id="data">carregando…</p>
       </div>
-      <button class="btn btn-primary" id="hoje" type="button">Hoje</button>
-    </form>
-  </header>
+      <form class="navegacao" id="calendario">
+        <button class="botao botao-icone" id="anterior" type="button" aria-label="Dia anterior"><svg aria-hidden="true"><use href="#i-anterior"/></svg></button>
+        <input id="escolha" type="date" aria-label="Data do cardápio" required>
+        <button class="botao botao-icone" id="seguinte" type="button" aria-label="Dia seguinte"><svg aria-hidden="true"><use href="#i-seguinte"/></svg></button>
+        <button class="botao" id="hoje" type="button">Hoje</button>
+      </form>
+    </header>
 
-  <section class="row g-4" id="refeicoes" aria-live="polite">
-    <div class="col-12 text-center py-5">
-      <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando…</span></div>
-    </div>
-  </section>
+    <section class="refeicoes" id="refeicoes" aria-live="polite" aria-busy="true">
+      <div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div>
+    </section>
 
-  <footer class="d-flex flex-wrap justify-content-between gap-2 mt-4 pt-3 border-top small text-body-secondary" id="rodape"></footer>
-</main>
+    <footer class="rodape" id="rodape"></footer>
+  </main>
+</div>
+
 <script>
   // Marcacoes que o site da UFES poe no fim do item, como "Pao Frances (CG)"
   const SELOS = { CG: "contém glúten", CL: "contém lactose" };
   // O prato que define a refeicao ganha destaque; o resto e lista
   const PRINCIPAIS = new Set(["Prato Proteico", "Opção"]);
-  const ICONES = { "Desjejum": "bi-cup-hot", "Almoço": "bi-sun", "Jantar": "bi-moon-stars" };
+  const TIPOS = { "Desjejum": "desjejum", "Almoço": "almoco", "Jantar": "jantar" };
 
   const $ = (id) => document.getElementById(id);
 
@@ -74,27 +247,65 @@
     return e;
   }
 
+  function icone(nome) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `#i-${nome}`);
+    svg.append(use);
+    return svg;
+  }
+
   // Tema -----------------------------------------------------------------
 
   function rotularTema() {
-    const escuro = document.documentElement.dataset.bsTheme === "dark";
+    const escuro = document.documentElement.dataset.tema === "escuro";
     const botao = $("tema");
-    botao.textContent = escuro ? "Fundo claro" : "Fundo escuro";
+    botao.replaceChildren(icone(escuro ? "claro" : "escuro"));
     botao.setAttribute("aria-label", escuro ? "Mudar para fundo claro" : "Mudar para fundo escuro");
+    botao.title = botao.getAttribute("aria-label");
   }
 
   $("tema").addEventListener("click", () => {
-    const escuro = document.documentElement.dataset.bsTheme !== "dark";
-    document.documentElement.dataset.bsTheme = escuro ? "dark" : "light";
+    const escuro = document.documentElement.dataset.tema !== "escuro";
+    document.documentElement.dataset.tema = escuro ? "escuro" : "claro";
     try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch {}
     rotularTema();
   });
   rotularTema();
 
+  // Horario --------------------------------------------------------------
+
+  // Minutos desde a meia-noite em Alegre, para saber se a refeicao esta aberta
+  function agoraEmAlegre() {
+    const [h, m] = new Date().toLocaleTimeString("en-GB",
+        { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  // "11h00 às 13h30" -> [660, 810]
+  function faixaEmMinutos(faixa) {
+    const m = /(\d{1,2})h(\d{2})\D+(\d{1,2})h(\d{2})/.exec(faixa || "");
+    return m ? [m[1] * 60 + +m[2], m[3] * 60 + +m[4]] : null;
+  }
+
+  // A situacao vale para a primeira unidade aberta (a do grupo e Alegre)
+  function situacao(refeicao) {
+    const h = (refeicao.horarios || []).find((x) => !x.fechado);
+    const faixa = h && faixaEmMinutos(h.faixa);
+    if (!faixa) return null;
+    const agora = agoraEmAlegre();
+    const fim = h.faixa.split(/\s+às\s+/)[1];
+    const inicio = h.faixa.split(/\s+às\s+/)[0];
+    if (agora < faixa[0]) return { texto: `Abre às ${inicio}`, agora: false };
+    if (agora <= faixa[1]) return { texto: `Aberto até ${fim}`, agora: true };
+    return { texto: "Encerrado", agora: false };
+  }
+
   // Cardapio -------------------------------------------------------------
 
-  function item(texto, principal) {
-    const linha = elemento("div", principal ? "fs-5 fw-semibold" : null);
+  function item(texto, classe) {
+    const linha = elemento(classe === "prato-nome" ? "p" : "div", classe);
     const selos = [];
     // Pode vir mais de uma no mesmo parentese: "Fricasse de Frango (CG/CL)"
     const nome = texto.replace(/\s*\(([A-Z]{2}(?:\/[A-Z]{2})*)\)/g, (todo, grupo) => {
@@ -105,47 +316,70 @@
     });
     linha.append(nome.trim());
     for (const sigla of selos) {
-      const s = elemento("abbr", "selo badge text-bg-secondary ms-2 fw-normal", sigla);
+      const s = elemento("abbr", "selo", sigla);
       s.title = SELOS[sigla];
       linha.append(s);
     }
     return { linha, selos };
   }
 
-  function coluna(refeicao, usados) {
-    const col = elemento("div", "col-12 col-md-4");
-    const card = elemento("article", "card h-100 border-0 shadow-sm");
+  function cartao(refeicao, usados, ehHoje) {
+    const tipo = TIPOS[refeicao.refeicao] || "almoco";
+    const art = elemento("article", "refeicao");
+    art.dataset.tipo = tipo;
 
-    const cabecalho = elemento("div", "card-header bg-body d-flex align-items-center gap-3 py-3");
-    const icone = elemento("span", "icone rounded-3 bg-primary-subtle text-primary-emphasis");
-    icone.append(elemento("i", `bi ${ICONES[refeicao.refeicao] || "bi-egg-fried"}`));
-    icone.firstChild.setAttribute("aria-hidden", "true");
-    const titulo = elemento("div");
-    titulo.append(elemento("h2", "h5 mb-0", refeicao.refeicao));
+    const cab = elemento("header");
+    const titulo = elemento("div", "refeicao-titulo");
+    titulo.append(icone(tipo), elemento("h2", null, refeicao.refeicao));
+    const s = ehHoje ? situacao(refeicao) : null;
+    if (s) {
+      titulo.append(elemento("span", "situacao", s.texto));
+      if (s.agora) art.classList.add("agora");
+    }
+    cab.append(titulo);
+
+    const horarios = elemento("ul", "horarios");
     for (const h of refeicao.horarios || []) {
       const texto = h.fechado ? `${h.unidade}: sem atendimento`
           : `${h.unidade}: ${h.faixa}${h.reduzido ? " (horário reduzido)" : ""}`;
-      const cor = h.fechado ? "text-danger" : h.reduzido ? "text-warning-emphasis" : "text-body-secondary";
-      titulo.append(elemento("div", `small ${cor}`, texto));
+      horarios.append(elemento("li", h.fechado ? "fechado" : h.reduzido ? "reduzido" : null, texto));
     }
-    cabecalho.append(icone, titulo);
-    card.append(cabecalho);
+    if (horarios.children.length) cab.append(horarios);
+    art.append(cab);
 
-    const ul = elemento("ul", "list-group list-group-flush");
-    for (const secao of refeicao.secoes) {
-      if (!secao.itens.length) continue;
-      const li = elemento("li", "list-group-item py-3");
-      li.append(elemento("div", "small text-uppercase fw-semibold text-body-secondary mb-1", secao.rotulo));
-      for (const i of secao.itens) {
-        const { linha, selos } = item(i, PRINCIPAIS.has(secao.rotulo));
-        selos.forEach((s) => usados.add(s));
-        li.append(linha);
+    const secoes = refeicao.secoes.filter((x) => x.itens.length);
+    const principais = secoes.filter((x) => PRINCIPAIS.has(x.rotulo));
+    const demais = secoes.filter((x) => !PRINCIPAIS.has(x.rotulo));
+
+    if (principais.length) {
+      const pratos = elemento("div", "pratos");
+      for (const secao of principais) {
+        const p = elemento("div", "prato");
+        p.append(elemento("div", "prato-rotulo", secao.rotulo === "Prato Proteico" ? "Prato principal" : secao.rotulo));
+        for (const i of secao.itens) {
+          const { linha, selos } = item(i, "prato-nome");
+          selos.forEach((x) => usados.add(x));
+          p.append(linha);
+        }
+        pratos.append(p);
       }
-      ul.append(li);
+      art.append(pratos);
     }
-    card.append(ul);
-    col.append(card);
-    return col;
+
+    if (demais.length) {
+      const dl = elemento("dl", "secoes");
+      for (const secao of demais) {
+        const dd = elemento("dd");
+        for (const i of secao.itens) {
+          const { linha, selos } = item(i, null);
+          selos.forEach((x) => usados.add(x));
+          dd.append(linha);
+        }
+        dl.append(elemento("dt", null, secao.rotulo), dd);
+      }
+      art.append(dl);
+    }
+    return art;
   }
 
   function mostrarData(iso) {
@@ -158,10 +392,11 @@
     document.title = `Cardápio do RU · ${data.toLocaleDateString("pt-BR")}`;
   }
 
-  function vazio(texto, tipo = "secondary") {
-    const col = elemento("div", "col-12");
-    col.append(elemento("div", `alert alert-${tipo} mb-0`, texto));
-    $("refeicoes").replaceChildren(col);
+  function aviso(titulo, texto, tom) {
+    const caixa = elemento("div", "aviso");
+    if (tom) caixa.dataset.tom = tom;
+    caixa.append(elemento("strong", null, titulo), elemento("p", null, texto));
+    $("refeicoes").replaceChildren(caixa);
   }
 
   // Calendario -----------------------------------------------------------
@@ -193,36 +428,47 @@
 
   // Carga ----------------------------------------------------------------
 
-  // O spinner que vem no HTML serve de modelo para as cargas seguintes
-  const CARREGANDO = $("refeicoes").firstElementChild.cloneNode(true);
+  // O esqueleto que vem no HTML serve de modelo para as cargas seguintes
+  const CARREGANDO = [...$("refeicoes").children].map((e) => e.cloneNode(true));
   let pedidoAtual = 0;
 
   async function carregar(iso) {
     // Cliques rapidos nas setas: so a resposta do ultimo pedido vale
     const pedido = ++pedidoAtual;
     const ehHoje = iso === hojeEmAlegre();
+    const area = $("refeicoes");
     $("escolha").value = iso;
     $("hoje").disabled = ehHoje;
     mostrarData(iso);
     $("rodape").replaceChildren();
-    $("refeicoes").replaceChildren(CARREGANDO.cloneNode(true));
+    area.replaceChildren(...CARREGANDO.map((e) => e.cloneNode(true)));
+    area.setAttribute("aria-busy", "true");
 
+    try {
+      await mostrar(iso, ehHoje, pedido);
+    } finally {
+      if (pedido === pedidoAtual) area.setAttribute("aria-busy", "false");
+    }
+  }
+
+  async function mostrar(iso, ehHoje, pedido) {
     let resposta;
     try {
       resposta = await fetch(`api/v1/cardapios/${iso}?refeicoes=todas`);
     } catch {
       if (pedido !== pedidoAtual) return;
-      return vazio("Não foi possível falar com o servidor.", "danger");
+      return aviso("Sem conexão com o servidor",
+          "Verifique a sua internet e tente de novo.", "erro");
     }
     if (pedido !== pedidoAtual) return;
 
     const dia = ehHoje ? "de hoje" : "deste dia";
     if (!resposta.ok) {
-      const motivo = {
-        502: `O site do RU não publicou o cardápio ${dia}, ou mudou de formato.`,
-        504: "O site do RU está fora do ar no momento.",
-      }[resposta.status] || `Erro ${resposta.status} ao buscar o cardápio.`;
-      return vazio(motivo, "warning");
+      const [titulo, texto] = {
+        502: ["Cardápio indisponível", `O site do RU não publicou o cardápio ${dia}, ou mudou de formato.`],
+        504: ["Site do RU fora do ar", "Tente de novo em alguns minutos."],
+      }[resposta.status] || ["Não deu para buscar o cardápio", `O servidor respondeu com erro ${resposta.status}.`];
+      return aviso(titulo, texto, "erro");
     }
 
     const c = await resposta.json();
@@ -232,26 +478,27 @@
     const usados = new Set();
     const fechado = (c.semRu || []).find((d) => d.dia === iso);
     if (fechado && !comItens.length) {
-      vazio(`Não tem RU ${ehHoje ? "hoje" : "neste dia"} (${fechado.unidades.join(" e ")}), `
-          + "segundo os avisos do RU.",
-          "warning");
+      aviso(`Não tem RU ${ehHoje ? "hoje" : "neste dia"}`,
+          `${fechado.unidades.join(" e ")} sem atendimento, segundo os avisos do RU.`, "fechado");
     } else if (!c.publicado || !comItens.length) {
-      vazio(`O cardápio ${dia} ainda não foi publicado.`, "info");
+      aviso(`Cardápio ${dia} ainda não publicado`,
+          "O RU costuma publicar o cardápio da semana com alguns dias de antecedência.");
     } else {
-      $("refeicoes").replaceChildren(...comItens.map((r) => coluna(r, usados)));
+      $("refeicoes").replaceChildren(...comItens.map((r) => cartao(r, usados, ehHoje)));
     }
 
     const rodape = $("rodape");
     const esquerda = elemento("span");
-    if (comItens[0]?.campus) esquerda.append(`Campus ${comItens[0].campus} · `);
-    const link = elemento("a", "link-secondary", "fonte");
+    if (comItens[0]?.campus) esquerda.append(`Campus ${comItens[0].campus}. `);
+    const link = elemento("a", null, "Ver no site do RU");
     link.href = c.origem;
     link.rel = "noopener";
     esquerda.append(link);
     rodape.append(esquerda);
     if (usados.size) {
-      rodape.append(elemento("span", null,
-          [...usados].sort().map((s) => `${s} ${SELOS[s]}`).join(" · ")));
+      const legenda = elemento("span", "legenda");
+      for (const s of [...usados].sort()) legenda.append(elemento("span", null, `${s}: ${SELOS[s]}`));
+      rodape.append(legenda);
     }
   }
 
