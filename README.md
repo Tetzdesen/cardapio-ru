@@ -27,6 +27,16 @@ cardápio muda e aviso antecipado dos dias sem RU. A mesma aplicação serve uma
   alerta num chat privado.
 - **API REST e página web** para consultar o cardápio de qualquer data.
 
+## No grupo
+
+O anúncio das 05h40 de 16/11/2026 no grupo do WhatsApp (clique para ver a mensagem inteira):
+
+<p align="center">
+  <a href="docs/whatsapp-completo.png">
+    <img src="docs/whatsapp.png" alt="Anúncio do cardápio no grupo do WhatsApp: desjejum e almoço com horários e itens" width="380">
+  </a>
+</p>
+
 ## Arquitetura
 
 <p align="center">
@@ -70,21 +80,6 @@ java -jar target/cardapio-ru-*.jar --spring.profiles.active=web  # sobe a API em
 
 Para enviar aos grupos, defina `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` (e, opcionalmente, as
 variáveis do WhatsApp). A lista completa está em [Deploy e configuração](docs/deploy.md).
-
-## Exemplo de mensagem
-
-```
-📅 *Sexta-feira, 23 de outubro*
-📍 _RU Alegre_
-
-🌙 *Jantar* · ⚠️ 17h15 às 18h30 *(horário reduzido)*
-
-🍗 *Prato Proteico*
-• Sassami à Milanesa (CG)
-
-🧃 *Suco*
-• Acerola 🍒
-```
 
 ## Documentação
 

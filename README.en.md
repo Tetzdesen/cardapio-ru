@@ -33,6 +33,16 @@ scheduler**.
 An in-app scheduler posts the whole day at 05:40, re-checks the site every 20 minutes for
 changes, and retries failed posts every 10 minutes until the meal's deadline.
 
+## In the group
+
+The 05:40 post of 16 Nov 2026 in the WhatsApp group (click for the whole message):
+
+<p align="center">
+  <a href="docs/whatsapp-completo.png">
+    <img src="docs/whatsapp.png" alt="Menu post in the WhatsApp group: breakfast and lunch with hours and items" width="380">
+  </a>
+</p>
+
 ## Technical highlights
 
 - **Scraping a site that changes without notice.** The source is a university Plone site
