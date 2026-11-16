@@ -132,13 +132,22 @@ public class DisparoRunner implements ApplicationRunner, ExitCodeGenerator {
                 pecas.add(Formatador.semCardapio());
             }
         } else {
+            List<String> cardapioDoDia = new ArrayList<>();
+            List<BlocoRefeicao> servidos = new ArrayList<>();
             for (BlocoRefeicao bloco : resultado.blocos()) {
                 List<Horario> horario = horarios.de(data, bloco, campus);
                 if (!Horario.todosFechados(horario)) {
-                    pecas.add(Formatador.mensagem(bloco, horario));
+                    servidos.add(bloco);
+                    cardapioDoDia.add(Formatador.mensagem(bloco, horario));
                 } else if (!diaSemRu) {
                     pecas.add(Formatador.semRefeicao(bloco, horario));
                 }
+            }
+            // o mesmo topo do disparo: o dia e o RU uma vez so
+            if (!servidos.isEmpty()) {
+                pecas.add(Formatador.cabecalho(data,
+                        Formatador.unidades(servidos, b -> horarios.de(data, b, campus))));
+                pecas.addAll(cardapioDoDia);
             }
         }
         pecas.add(Formatador.linkDaOrigem(resultado.origem()));

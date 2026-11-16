@@ -98,7 +98,8 @@ class FormatadorTest {
         String texto = Formatador.mensagem(almoco);
 
         assertThat(texto)
-                .contains("📍 <i>" + Formatador.escapar(almoco.campus()) + "</i>")
+                .startsWith("🍽️ <b>Almoço</b>\n")
+                .doesNotContain("📍")
                 .contains("\n🥗 <b>Entrada</b>\n• Almeirão e Rúcula")
                 .contains("\n🍗 <b>Prato Proteico</b>\n• Peixe Frito")
                 .contains("\n🍮 <b>Sobremesa</b>\n• Laranja 🍊")
@@ -130,7 +131,7 @@ class FormatadorTest {
     }
 
     @Test
-    void horarioVemLogoAbaixoDoCampusEMarcaOReduzido() {
+    void horarioDeVariasUnidadesVemUmaPorLinhaEMarcaOReduzido() {
         BlocoRefeicao jantar = analisar().blocos().get(2);
 
         String texto = Formatador.mensagem(jantar, List.of(
@@ -138,12 +139,41 @@ class FormatadorTest {
                 new Horario("Jerônimo Monteiro", "17h15 às 18h30", false),
                 Horario.fechado("Outra")));
 
-        assertThat(texto).contains("📍 <i>" + Formatador.escapar(jantar.campus()) + "</i>\n"
+        assertThat(texto).startsWith("🌙 <b>Jantar</b>\n"
                 + "⚠️ Alegre: 17h15 às 18h30 <b>(horário reduzido)</b>\n"
                 + "🕒 Jerônimo Monteiro: 17h15 às 18h30\n"
                 + "🚫 Outra: <b>sem atendimento</b>\n");
         assertThat(Formatador.assinatura(jantar))
                 .isEqualTo(Formatador.assinatura(Formatador.bloco(jantar)));
+    }
+
+    @Test
+    void horarioDeUmaUnidadeVaiNaLinhaDaRefeicao() {
+        BlocoRefeicao jantar = analisar().blocos().get(2);
+
+        assertThat(Formatador.mensagem(jantar, List.of(new Horario("Alegre", "17h15 às 19h30", false))))
+                .startsWith("🌙 <b>Jantar</b> · 17h15 às 19h30\n");
+        assertThat(Formatador.mensagem(jantar, List.of(new Horario("Alegre", "17h15 às 18h30", true))))
+                .startsWith("🌙 <b>Jantar</b> · ⚠️ 17h15 às 18h30 <b>(horário reduzido)</b>\n");
+    }
+
+    @Test
+    void cabecalhoTemODiaEORuUmaVezSo() {
+        assertThat(Formatador.cabecalho(LocalDate.of(2026, 11, 16), List.of("Alegre")))
+                .isEqualTo("📅 <b>Segunda-feira, 16 de novembro</b>\n📍 <i>RU Alegre</i>");
+        assertThat(Formatador.cabecalho(LocalDate.of(2026, 11, 16),
+                List.of("Alegre", "Jerônimo Monteiro")))
+                .endsWith("📍 <i>RU Alegre e Jerônimo Monteiro</i>");
+    }
+
+    @Test
+    void cabecalhoSemHorarioUsaOCampusDaPagina() {
+        List<BlocoRefeicao> blocos = analisar().blocos();
+
+        assertThat(Formatador.unidades(blocos, b -> List.of()))
+                .containsExactly(blocos.get(0).campus());
+        assertThat(Formatador.unidades(blocos, b -> List.of(new Horario("Alegre", "x", false))))
+                .containsExactly("Alegre");
     }
 
     @Test

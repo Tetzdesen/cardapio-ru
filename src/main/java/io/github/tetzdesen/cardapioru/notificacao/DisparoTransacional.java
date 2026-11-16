@@ -209,7 +209,7 @@ public class DisparoTransacional {
 
         boolean alguemMudou = aEnviar.stream().anyMatch(c -> c.situacao() == Situacao.MUDOU);
         if (!aEnviar.isEmpty()) {
-            pecas.addAll(montar(aEnviar, cardapio.origemDe(data), alguemMudou,
+            pecas.addAll(montar(data, aEnviar, cardapio.origemDe(data), alguemMudou,
                     bloco -> horarios.de(data, bloco, campus)));
         }
 
@@ -265,12 +265,16 @@ public class DisparoTransacional {
         estado.registrar(data, canal.nome(), gravaveis, semRuAvisados);
     }
 
-    static List<Peca> montar(List<Classificacao> blocos, String origem, boolean aviso,
-            Function<BlocoRefeicao, List<Horario>> horarioDe) {
+    static List<Peca> montar(LocalDate data, List<Classificacao> blocos, String origem,
+            boolean aviso, Function<BlocoRefeicao, List<Horario>> horarioDe) {
         List<Peca> pecas = new ArrayList<>();
         if (aviso) {
             pecas.add(Peca.avulsa(Formatador.AVISO_MUDANCA));
         }
+        // o dia e o RU vao uma vez so, no topo, e nao em cada refeicao
+        List<BlocoRefeicao> doAnuncio = blocos.stream().map(Classificacao::bloco).toList();
+        pecas.add(Peca.avulsa(Formatador.cabecalho(data,
+                Formatador.unidades(doAnuncio, horarioDe))));
         for (Classificacao c : blocos) {
             pecas.add(new Peca(c.refeicaoNormalizada(), Formatador.mensagem(c.bloco(),
                     horarioDe.apply(c.bloco()))));

@@ -51,7 +51,7 @@ changes, and retries failed posts every 10 minutes until the meal's deadline.
 - **TLS without shortcuts.** The university server omits its intermediate certificate;
   instead of disabling verification, the app bundles the intermediate to complete the
   chain, and a test ensures verification can never be turned off.
-- **Tests against reality.** 230 tests, none touching the network, run against real pages
+- **Tests against reality.** 215 tests, none touching the network, run against real pages
   frozen as fixtures, plus a byte-for-byte reference proving the port from the original
   Python bot to Java changed no message.
 

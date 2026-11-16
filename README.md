@@ -50,7 +50,7 @@ cardápio muda e aviso antecipado dos dias sem RU. A mesma aplicação serve uma
   canais isolados entre si (padrão Strategy) e alertas de falha.
 - **TLS correto.** O servidor da UFES omite o certificado intermediário; a aplicação
   completa a cadeia com o certificado da RNP em vez de desativar a verificação.
-- **230 testes automatizados** contra páginas reais congeladas como fixtures, sem acesso à
+- **215 testes automatizados** contra páginas reais congeladas como fixtures, sem acesso à
   rede.
 
 ## Tecnologias
@@ -74,9 +74,10 @@ variáveis do WhatsApp). A lista completa está em [Deploy e configuração](doc
 ## Exemplo de mensagem
 
 ```
-🌙 *Jantar* — sexta-feira, 23 de Outubro de 2026
-📍 _Alegre e Jerônimo Monteiro_
-⚠️ Alegre: 17h15 às 18h30 *(horário reduzido)*
+📅 *Sexta-feira, 23 de outubro*
+📍 _RU Alegre_
+
+🌙 *Jantar* · ⚠️ 17h15 às 18h30 *(horário reduzido)*
 
 🍗 *Prato Proteico*
 • Sassami à Milanesa (CG)

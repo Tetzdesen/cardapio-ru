@@ -46,9 +46,10 @@ nada que ainda não foi anunciado e, em dia sem cardápio, fica quieta.
 
 ### Horário de funcionamento
 
-Cada refeição vem com o horário da unidade, logo abaixo do campus: `🕒` no horário
-regular, `⚠️ ... (horário reduzido)` quando um aviso o encurta, `🚫 sem atendimento`
-quando a unidade não abre.
+O anúncio abre com o dia e o RU uma vez só (`📅 Segunda-feira, 16 de novembro`,
+`📍 RU Alegre`), e cada refeição traz o horário na própria linha:
+`☕ Desjejum · 06h45 às 08h00`, ou `⚠️ ... (horário reduzido)` quando um aviso o encurta.
+Com mais de uma unidade no anúncio, vai uma linha por unidade, com o nome dela.
 
 O horário regular fica no código (`QuadroDeHorarios`), copiado da página de
 funcionamento do RU, porque muda uma vez por semestre, se tanto:

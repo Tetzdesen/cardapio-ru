@@ -12,8 +12,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 /**
  * Porte do {@code formatar_bloco} e do {@code assinatura} do ru_bot.py.
@@ -30,6 +32,9 @@ public final class Formatador {
 
     private static final DateTimeFormatter DIA =
             DateTimeFormatter.ofPattern("EEEE, dd/MM", Locale.of("pt", "BR"));
+
+    private static final DateTimeFormatter DIA_POR_EXTENSO =
+            DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale.of("pt", "BR"));
 
     private Formatador() {
     }
@@ -82,16 +87,23 @@ public final class Formatador {
     }
 
     /**
-     * A mensagem com o horario de cada unidade logo abaixo do campus. O horario
-     * tambem fica fora da assinatura: aviso de horario novo nao e cardapio novo.
+     * Uma refeicao dentro do anuncio: o nome com o horario na mesma linha e as
+     * secoes. A data e o campus ficam no {@link #cabecalho}, uma vez so por
+     * mensagem. O horario tambem fica fora da assinatura: aviso de horario novo
+     * nao e cardapio novo.
      */
     public static String mensagem(BlocoRefeicao bloco, List<Horario> horarios) {
         String icone = Vocabulario.emojiDe(bloco.refeicao());
+        String titulo = icone + " <b>" + escapar(bloco.refeicao()) + "</b>";
         List<String> partes = new ArrayList<>();
-        partes.add(icone + " <b>" + escapar(bloco.refeicao()) + "</b> — "
-                + escapar(bloco.data()) + "\n📍 <i>" + escapar(bloco.campus()) + "</i>");
-        for (Horario horario : horarios) {
-            partes.add(horario(horario));
+        if (horarios.size() == 1) {
+            partes.add(titulo + " · " + faixa(horarios.get(0)));
+        } else {
+            // mais de uma unidade: uma linha por unidade, com o nome dela
+            partes.add(titulo);
+            for (Horario horario : horarios) {
+                partes.add(horario(horario));
+            }
         }
 
         for (Secao secao : bloco.secoes()) {
@@ -112,6 +124,28 @@ public final class Formatador {
             }
         }
         return String.join("\n", partes);
+    }
+
+    /**
+     * O topo do anuncio: o dia e o RU, uma vez so, em vez de repetidos em cada
+     * refeicao. {@code unidades} sao as do horario; sem horario, vale o campus
+     * que a pagina declara.
+     */
+    public static String cabecalho(LocalDate data, List<String> unidades) {
+        String dia = DIA_POR_EXTENSO.format(data);
+        dia = Character.toUpperCase(dia.charAt(0)) + dia.substring(1);
+        return "📅 <b>" + dia + "</b>\n📍 <i>RU " + escapar(String.join(" e ", unidades)) + "</i>";
+    }
+
+    /** A faixa de uma unidade sem o nome dela, para ir na linha da refeicao. */
+    static String faixa(Horario h) {
+        if (h.fechado()) {
+            return "🚫 <b>sem atendimento hoje</b>";
+        }
+        if (h.reduzido()) {
+            return "⚠️ " + escapar(h.faixa()) + " <b>(horário reduzido)</b>";
+        }
+        return escapar(h.faixa());
     }
 
     static String horario(Horario h) {
@@ -145,6 +179,22 @@ public final class Formatador {
         return "🚫 <b>Sem " + escapar(refeicao) + " hoje</b>\n📍 <i>"
                 + escapar(String.join(" e ", fechadas.stream().map(Horario::unidade).toList()))
                 + "</i>";
+    }
+
+    /**
+     * As unidades do cabecalho: as que aparecem no horario das refeicoes, na
+     * ordem; sem nenhum horario, o campus que a pagina da primeira declara.
+     */
+    public static List<String> unidades(List<BlocoRefeicao> blocos,
+            Function<BlocoRefeicao, List<Horario>> horarioDe) {
+        LinkedHashSet<String> unidades = new LinkedHashSet<>();
+        for (BlocoRefeicao bloco : blocos) {
+            horarioDe.apply(bloco).forEach(h -> unidades.add(h.unidade()));
+        }
+        if (unidades.isEmpty() && !blocos.isEmpty()) {
+            return List.of(blocos.get(0).campus());
+        }
+        return List.copyOf(unidades);
     }
 
     public static String semCardapio() {

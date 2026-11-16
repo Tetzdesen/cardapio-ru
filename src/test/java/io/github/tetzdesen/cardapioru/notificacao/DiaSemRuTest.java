@@ -191,8 +191,9 @@ class DiaSemRuTest {
         servico.disparar(SEXTA, List.of("Jantar"), "alegre", true);
 
         verify(telegram).enviar(argThat(pecas -> pecas.stream().anyMatch(p ->
-                p.texto().contains("⚠️ Alegre: 17h15 às 18h30 <b>(horário reduzido)</b>")
-                        && !p.texto().contains("Jerônimo Monteiro:"))));
+                p.texto().contains("🌙 <b>Jantar</b> · ⚠️ 17h15 às 18h30 <b>(horário reduzido)</b>")
+                        && !p.texto().contains("Jerônimo Monteiro"))
+                && pecas.stream().anyMatch(p -> p.texto().endsWith("📍 <i>RU Alegre</i>"))));
     }
 
     @Test
