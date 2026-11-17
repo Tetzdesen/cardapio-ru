@@ -29,7 +29,7 @@ cardápio muda e aviso antecipado dos dias sem RU. A mesma aplicação serve uma
 
 ## No grupo
 
-O anúncio das 05h40 de 16/11/2026 no grupo do WhatsApp (clique para ver a mensagem inteira):
+O anúncio das 05h40 de 17/11/2026 no grupo do WhatsApp (clique para ver a mensagem inteira):
 
 <p align="center">
   <a href="docs/whatsapp-completo.png">

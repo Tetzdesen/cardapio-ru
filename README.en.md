@@ -35,7 +35,7 @@ changes, and retries failed posts every 10 minutes until the meal's deadline.
 
 ## In the group
 
-The 05:40 post of 16 Nov 2026 in the WhatsApp group (click for the whole message):
+The 05:40 post of 17 Nov 2026 in the WhatsApp group (click for the whole message):
 
 <p align="center">
   <a href="docs/whatsapp-completo.png">
