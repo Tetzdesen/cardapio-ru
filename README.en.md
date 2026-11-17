@@ -38,8 +38,8 @@ changes, and retries failed posts every 10 minutes until the meal's deadline.
 The 05:40 post of 17 Nov 2026 in the WhatsApp group (click for the whole message):
 
 <p align="center">
-  <a href="docs/whatsapp-completo.png">
-    <img src="docs/whatsapp.png" alt="Menu post in the WhatsApp group: breakfast and lunch with hours and items" width="380">
+  <a href="docs/whatsapp-2026-11-17-completo.png">
+    <img src="docs/whatsapp-2026-11-17.png" alt="Menu post in the WhatsApp group: breakfast and lunch with hours and items" width="380">
   </a>
 </p>
 

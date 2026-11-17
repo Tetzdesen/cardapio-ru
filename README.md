@@ -32,8 +32,8 @@ cardápio muda e aviso antecipado dos dias sem RU. A mesma aplicação serve uma
 O anúncio das 05h40 de 17/11/2026 no grupo do WhatsApp (clique para ver a mensagem inteira):
 
 <p align="center">
-  <a href="docs/whatsapp-completo.png">
-    <img src="docs/whatsapp.png" alt="Anúncio do cardápio no grupo do WhatsApp: desjejum e almoço com horários e itens" width="380">
+  <a href="docs/whatsapp-2026-11-17-completo.png">
+    <img src="docs/whatsapp-2026-11-17.png" alt="Anúncio do cardápio no grupo do WhatsApp: desjejum e almoço com horários e itens" width="380">
   </a>
 </p>
 
